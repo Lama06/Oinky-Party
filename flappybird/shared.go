@@ -14,13 +14,13 @@ const (
 	BirdSize                  = 0.06             // Die Höhe und Breite des Vogels
 	BirdPosX                  = 0.5 - BirdSize/2 // Die permanente X Position der oberen linken Ecke des Vogels
 	BirdStartPosY             = 0.5 - BirdSize/2 // Die Y Position der oberen linken Ecke der Vögel, bei der sie sich am Anfang des Spieles befinden
-	BirdSpeedYIncreasePerTick = 0.001            // Die
-	BirdSpeedYAfterJump       = -0.02
+	BirdSpeedYIncreasePerTick = 0.001            // Der Wert, mit dem die Geschwindigkeit der Vögel jede Sekunde erhöht wird
+	BirdSpeedYAfterJump       = -0.02            // Der Wert der Geschwindigkeit der Vögel nach einem Sprung
 
-	ObstacleSpawnRate       = 70
-	ObstacleWidth           = 0.02
-	ObstacleFreeSpaceHeight = 0.3
-	ObstacleSpeed           = -0.005
+	ObstacleSpawnRate       = 70     // Der Abstand in Ticks, in dem Hindernisse spawnen
+	ObstacleWidth           = 0.06   // Die Breite der Hindernisse
+	ObstacleFreeSpaceHeight = 0.4    // Die Höhe des freien Platzes der Hindernisse
+	ObstacleSpeed           = -0.005 // Die Geschwindigkeit, mit der die X Koordinate der Hindernisse pro Tick erhöht wird
 )
 
 // Client zu Server

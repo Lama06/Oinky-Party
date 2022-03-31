@@ -1,7 +1,5 @@
 package protocol
 
-// General
-
 const CreatePartyPacketName = "create-party"
 
 type CreatePartyPacket struct {

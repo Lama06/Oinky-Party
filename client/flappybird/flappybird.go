@@ -6,14 +6,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Lama06/Oinky-Party/client/game"
+	"github.com/Lama06/Oinky-Party/client/rescources"
 	shared "github.com/Lama06/Oinky-Party/flappybird"
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/colornames"
 	"image"
 	_ "image/png"
+	"math"
 	"time"
 )
 
@@ -46,23 +49,70 @@ type player struct {
 	serverPosY   float64 // Die letzte Y Position, die vom Server gesendet wurde
 	clientPosY   float64 // Zwischen den UpdatePackets vom Server wird die Y Position der Vögel anhand der vergangenen Zeit des letzten Packets berechnet
 	serverSpeedY float64 // Der letzte Speed Wert, der vom Server gesendet wurde
+	clientSpeedY float64 // Zwischen den UpdatePackets vom Server wird der Y Speed der Vögel anhand der vergangenen Zeit des letzten Packets berechnet
+	rotation     float64 // Die Neigung des Vogels richtet sich nach seiner Geschwindigkeit. Die Veränderung wird gedrosselt, damit eine Animation entsteht
 }
 
 func (p *player) clientTick(delta float64) {
-	p.clientPosY = p.serverPosY + p.serverSpeedY*delta
+	// Y Position und Geschwindigkeit berechnen
+	posY := p.serverPosY
+	speedY := p.serverSpeedY
+
+	skippedTicks := int(math.Trunc(delta))
+	for i := 1; i <= skippedTicks; i++ {
+		speedY += shared.BirdSpeedYIncreasePerTick
+		posY += speedY
+	}
+	remainingDelta := delta - float64(skippedTicks)
+	posY += speedY * remainingDelta
+
+	p.clientPosY = posY
+	p.clientSpeedY = speedY
+
+	// Rotation berechnen
+	const maxRotationChangePerTick = 0.05
+	targetRotation := p.clientSpeedY * 15
+	if p.rotation > targetRotation {
+		diff := p.rotation - targetRotation
+		if diff > maxRotationChangePerTick {
+			diff = maxRotationChangePerTick
+		}
+		p.rotation -= diff
+	} else if p.rotation < targetRotation {
+		diff := targetRotation - p.rotation
+		if diff > maxRotationChangePerTick {
+			diff = maxRotationChangePerTick
+		}
+		p.rotation += diff
+	}
 }
 
-func (p player) draw(client game.Client, screen *ebiten.Image) {
+func (p *player) draw(client game.Client, screen *ebiten.Image) {
 	windowWidth, windowHeight := ebiten.WindowSize()
 	img := ebiten.NewImageFromImage(birdImage)
 	imgWidth, imgHeight := img.Size()
 	birdSize := getVisualBirdSize()
 	birdXScale, birdYScale := float64(birdSize)/float64(imgWidth), float64(birdSize)/float64(imgHeight)
+	birdX, birdY := shared.BirdPosX*float64(windowWidth), p.clientPosY*float64(windowHeight)
 
 	var drawOptions ebiten.DrawImageOptions
+	drawOptions.GeoM.Rotate(p.rotation)
 	drawOptions.GeoM.Scale(birdXScale, birdYScale)
-	drawOptions.GeoM.Translate(shared.BirdPosX*float64(windowWidth), p.clientPosY*float64(windowHeight))
+	drawOptions.GeoM.Translate(birdX, birdY)
 	screen.DrawImage(img, &drawOptions)
+
+	if p.id != client.Id() {
+		var partyPlayer game.PartyPlayer
+		for _, player := range client.PartyPlayers() {
+			if player.Id == p.id {
+				partyPlayer = player
+				break
+			}
+		}
+
+		textX, textY := birdX+float64(birdSize)+50, birdY+float64(birdSize)/2
+		text.Draw(screen, partyPlayer.Name, rescources.RobotoNormalFont, int(textX), int(textY), colornames.Black)
+	}
 }
 
 type obstacle struct {
@@ -76,12 +126,12 @@ func (o *obstacle) clientTick(delta float64) {
 	o.clientPosX = o.serverPosX + shared.ObstacleSpeed*delta
 }
 
-func (o obstacle) draw(screen *ebiten.Image) {
+func (o *obstacle) draw(screen *ebiten.Image) {
 	windowWidth, windowHeight := ebiten.WindowSize()
 	width := int(shared.ObstacleWidth * float64(windowWidth))
 
 	upper := ebiten.NewImage(width, int(o.freeSpaceUpperY*float64(windowHeight)))
-	upper.Fill(colornames.White)
+	upper.Fill(colornames.Black)
 	var upperDrawOptions ebiten.DrawImageOptions
 	upperDrawOptions.GeoM.Translate(o.clientPosX*float64(windowWidth), 0)
 	screen.DrawImage(upper, &upperDrawOptions)
@@ -89,7 +139,7 @@ func (o obstacle) draw(screen *ebiten.Image) {
 	lowerHeight := int((1 - o.freeSpaceLowerY) * float64(windowHeight))
 	if lowerHeight > 0 { // Wenn lowerHeight 0 ist erzeugt der Aufruf von NewImage einen panic
 		lower := ebiten.NewImage(width, lowerHeight)
-		lower.Fill(colornames.White)
+		lower.Fill(colornames.Black)
 		var lowerDrawOptions ebiten.DrawImageOptions
 		lowerDrawOptions.GeoM.Translate(o.clientPosX*float64(windowWidth), float64(windowHeight)-float64(lowerHeight))
 		screen.DrawImage(lower, &lowerDrawOptions)
@@ -124,6 +174,8 @@ func (i *impl) HandleGameStarted() {
 			serverPosY:   shared.BirdStartPosY,
 			clientPosY:   shared.BirdStartPosY,
 			serverSpeedY: 0,
+			clientSpeedY: 0,
+			rotation:     0,
 		}
 	}
 
@@ -148,6 +200,10 @@ func (i *impl) HandlePacket(packet []byte) error {
 			return fmt.Errorf("could not unmarshal packet: %w", err)
 		}
 
+		oldRotations := make(map[int32]float64)
+		for _, player := range i.players {
+			oldRotations[player.id] = player.rotation
+		}
 		i.players = make([]*player, len(update.Players))
 		for index, playerData := range update.Players {
 			i.players[index] = &player{
@@ -155,6 +211,8 @@ func (i *impl) HandlePacket(packet []byte) error {
 				serverPosY:   playerData.PositionY,
 				clientPosY:   playerData.PositionY,
 				serverSpeedY: playerData.SpeedY,
+				clientSpeedY: playerData.SpeedY,
+				rotation:     oldRotations[playerData.Player],
 			}
 		}
 
@@ -175,7 +233,7 @@ func (i *impl) HandlePacket(packet []byte) error {
 }
 
 func (i *impl) Draw(screen *ebiten.Image) {
-	screen.Fill(colornames.Black)
+	screen.Fill(colornames.Lightblue)
 
 	for _, player := range i.players {
 		player.draw(i.client, screen)

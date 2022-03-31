@@ -1,7 +1,5 @@
 package protocol
 
-// General
-
 const WelcomePacketName = "welcome"
 
 type WelcomePacket struct {
