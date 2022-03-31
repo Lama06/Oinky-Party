@@ -90,7 +90,7 @@ func (c *client) start() {
 }
 
 func (c *client) connect() error {
-	conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", protocol.Port))
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", protocol.ServerAddress, protocol.Port))
 	if err != nil {
 		return fmt.Errorf("failed dial the server: %w", err)
 	}

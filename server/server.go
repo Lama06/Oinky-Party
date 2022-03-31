@@ -66,7 +66,7 @@ func (s *server) start() {
 }
 
 func (s *server) listenForConnections() {
-	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", protocol.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", protocol.Port))
 	if err != nil {
 		log.Println(fmt.Errorf("failed to start the tcp listener: %w", err))
 		return
