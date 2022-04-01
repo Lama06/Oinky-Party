@@ -30,12 +30,12 @@ var _ game.Player = (*player)(nil)
 
 func newPlayer(conn net.Conn, server *server) *player {
 	return &player{
-		conn:           conn,
-		name:           randomPlayerNames[rand.Intn(len(randomPlayerNames))],
-		id:             rand.Int31(),
-		send:           make(chan []byte, 100),
-		receive:        make(chan []byte, 100),
-		server:         server,
+		conn:    conn,
+		name:    randomPlayerNames[rand.Intn(len(randomPlayerNames))],
+		id:      rand.Int31(),
+		send:    make(chan []byte, 100),
+		receive: make(chan []byte, 100),
+		server:  server,
 	}
 }
 

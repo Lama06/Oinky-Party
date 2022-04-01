@@ -8,7 +8,6 @@ import (
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/Lama06/Oinky-Party/server/game"
 	"math/rand"
-	"time"
 )
 
 type bird struct {
@@ -90,6 +89,7 @@ type impl struct {
 	party                  game.Party
 	playerDataMap          map[int32]*bird
 	ticksUntilNextObstacle int
+	obstacleCount          int32
 	obstacles              []*obstacle
 }
 
@@ -162,10 +162,10 @@ func (i *impl) broadcastUpdatePacket() {
 	}
 
 	update, err := json.Marshal(shared.UpdatePacket{
-		PacketName: shared.UpdatePacketName,
-		Time: time.Now().UnixMilli(),
-		Players:    players,
-		Obstacles:  obstacles,
+		PacketName:    shared.UpdatePacketName,
+		Players:       players,
+		Obstacles:     obstacles,
+		ObstacleCount: i.obstacleCount,
 	})
 	if err != nil {
 		panic(err)
@@ -218,6 +218,8 @@ func (i *impl) tickObstacles() {
 }
 
 func (i *impl) spawnNewObstacle() {
+	i.obstacleCount++
+
 	freeSpaceLowerY, freeSpaceUpperY := randomObstacleFreeSpace()
 
 	newObstacle := &obstacle{

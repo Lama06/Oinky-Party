@@ -48,8 +48,8 @@ type ObstacleUpdateData struct {
 const UpdatePacketName = "flappy-bird-update"
 
 type UpdatePacket struct {
-	PacketName string
-	Time       int64
-	Players    []PlayerUpdateData
-	Obstacles  []ObstacleUpdateData
+	PacketName    string
+	Players       []PlayerUpdateData
+	Obstacles     []ObstacleUpdateData
+	ObstacleCount int32
 }

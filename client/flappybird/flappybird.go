@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/Lama06/Oinky-Party/client/game"
 	"github.com/Lama06/Oinky-Party/client/rescources"
+	"github.com/Lama06/Oinky-Party/client/ui"
 	shared "github.com/Lama06/Oinky-Party/flappybird"
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -17,6 +18,7 @@ import (
 	"image"
 	_ "image/png"
 	"math"
+	"strconv"
 	"time"
 )
 
@@ -147,10 +149,11 @@ func (o *obstacle) draw(screen *ebiten.Image) {
 }
 
 type impl struct {
-	client       game.Client
-	lastTickTime int64 // Die Zeit in Millisekunden, bei der das letzte Mal die Daten vom Server aktualisiert wurden
-	players      []*player
-	obstacles    []*obstacle
+	client        game.Client
+	lastTickTime  int64 // Die Zeit in Millisekunden, bei der das letzte Mal die Daten vom Server aktualisiert wurden
+	players       []*player
+	obstacles     []*obstacle
+	obstacleCount int32
 }
 
 var _ game.Game = (*impl)(nil)
@@ -200,7 +203,7 @@ func (i *impl) HandlePacket(packet []byte) error {
 			return fmt.Errorf("could not unmarshal packet: %w", err)
 		}
 
-		oldRotations := make(map[int32]float64)
+		oldRotations := make(map[int32]float64, len(i.players))
 		for _, player := range i.players {
 			oldRotations[player.id] = player.rotation
 		}
@@ -225,11 +228,18 @@ func (i *impl) HandlePacket(packet []byte) error {
 				clientPosX:      obstacleData.PosX,
 			}
 		}
+		i.obstacleCount = update.ObstacleCount
 
-		i.lastTickTime = update.Time
+		i.lastTickTime = time.Now().UnixMilli()
 	}
 
 	return nil
+}
+
+func (i *impl) obstacleCounter() *ui.Text {
+	windowWidth, _ := ebiten.WindowSize()
+
+	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, 50), strconv.Itoa(int(i.obstacleCount)), rescources.RobotoTitleFont)
 }
 
 func (i *impl) Draw(screen *ebiten.Image) {
@@ -242,6 +252,8 @@ func (i *impl) Draw(screen *ebiten.Image) {
 	for _, obstacle := range i.obstacles {
 		obstacle.draw(screen)
 	}
+
+	i.obstacleCounter().Draw(screen)
 }
 
 func (i *impl) Update() {
@@ -265,6 +277,7 @@ func (i *impl) Update() {
 		player.clientTick(delta)
 	}
 
+	i.obstacleCounter().Update()
 }
 
 func (i *impl) alive() bool {

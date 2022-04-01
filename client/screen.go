@@ -26,10 +26,16 @@ type titleScreen struct {
 
 var _ screen = (*titleScreen)(nil)
 
-func newMenuScreen(c *client) *titleScreen {
+func newTitleScreen(c *client) *titleScreen {
 	return &titleScreen{
 		c: c,
 	}
+}
+
+func (t *titleScreen) title() *ui.Text {
+	width, height := ebiten.WindowSize()
+
+	return ui.NewText(ui.NewCenteredPosition(width/2, (height/3)), "Oinky Party", rescources.RobotoTitleFont)
 }
 
 func (t *titleScreen) createPartyButton() *ui.Button {
@@ -48,21 +54,26 @@ func (t *titleScreen) joinPartyBtn() *ui.Button {
 	})
 }
 
+func (t *titleScreen) content() []ui.Component {
+	return []ui.Component{t.title(), t.createPartyButton(), t.joinPartyBtn()}
+}
+
 func (t *titleScreen) Update() {
-	switch {
-	case inpututil.IsKeyJustReleased(ebiten.Key1):
+	if inpututil.IsKeyJustReleased(ebiten.Key1) {
 		t.c.currentScreen = newCreatePartyScreen(t.c)
-	case inpututil.IsKeyJustReleased(ebiten.Key2):
+	} else if inpututil.IsKeyJustReleased(ebiten.Key2) {
 		t.c.currentScreen = newJoinPartyScreen(t.c)
-	default:
-		t.createPartyButton().Update()
-		t.joinPartyBtn().Update()
+	}
+
+	for _, component := range t.content() {
+		component.Update()
 	}
 }
 
 func (t *titleScreen) Draw(screen *ebiten.Image) {
-	t.createPartyButton().Draw(screen)
-	t.joinPartyBtn().Draw(screen)
+	for _, component := range t.content() {
+		component.Draw(screen)
+	}
 }
 
 type gameScreen struct {
@@ -143,6 +154,12 @@ func (j *joinPartyScreen) statusText() *ui.Text {
 	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, windowHeight/2), text, rescources.RobotoNormalFont)
 }
 
+func (j *joinPartyScreen) title() *ui.Text {
+	windowWidth, windowHeight := ebiten.WindowSize()
+
+	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, windowHeight/3), "Party beitreten", rescources.RobotoTitleFont)
+}
+
 func (j *joinPartyScreen) partiesList() []*ui.Button {
 	windowWidth, windowHeight := ebiten.WindowSize()
 
@@ -152,7 +169,7 @@ func (j *joinPartyScreen) partiesList() []*ui.Button {
 
 		partyButton := ui.NewButton(ui.NewCenteredPosition(
 			windowWidth/2,
-			windowHeight/3+100*i,
+			(windowHeight/3)*2+100*i,
 		), fmt.Sprintf("%s (%d Spieler)", party.Name, len(party.Players)), func() {
 			joinParty, err := json.Marshal(protocol.JoinPartyPacket{
 				PacketName: protocol.JoinPartyPacketName,
@@ -174,9 +191,9 @@ func (j *joinPartyScreen) content() []ui.Component {
 		return []ui.Component{j.statusText()}
 	} else {
 		partyButtons := j.partiesList()
-		components := make([]ui.Component, len(partyButtons))
-		for i, partyButton := range partyButtons {
-			components[i] = partyButton
+		components := []ui.Component{j.title()}
+		for _, partyButton := range partyButtons {
+			components = append(components, partyButton)
 		}
 		return components
 	}
@@ -184,7 +201,7 @@ func (j *joinPartyScreen) content() []ui.Component {
 
 func (j *joinPartyScreen) Update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		j.c.currentScreen = newMenuScreen(j.c)
+		j.c.currentScreen = newTitleScreen(j.c)
 	}
 
 	for _, component := range j.content() {
@@ -239,7 +256,7 @@ func (c *createPartyScreen) partyNameText() *ui.Text {
 
 	pos := ui.NewCenteredPosition(width/2, height/3)
 
-	return ui.NewText(pos, "Name der Party: " + string(c.partyName), rescources.RobotoNormalFont)
+	return ui.NewText(pos, "Name der Party: "+string(c.partyName), rescources.RobotoNormalFont)
 }
 
 func (c *createPartyScreen) createButton() *ui.Button {
@@ -263,7 +280,7 @@ func (c *createPartyScreen) createButton() *ui.Button {
 
 func (c *createPartyScreen) Update() {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		c.c.currentScreen = newMenuScreen(c.c)
+		c.c.currentScreen = newTitleScreen(c.c)
 	}
 
 	c.partyName = ebiten.AppendInputChars(c.partyName)
@@ -278,7 +295,6 @@ func (c *createPartyScreen) Draw(screen *ebiten.Image) {
 	c.partyNameText().Draw(screen)
 	c.createButton().Draw(screen)
 }
-
 
 type partyScreen struct {
 	c *client
@@ -297,7 +313,7 @@ func (p *partyScreen) title() *ui.Text {
 
 	pos := ui.NewCenteredPosition(width/2, height/3)
 
-	return ui.NewText(pos, "Party: " + p.c.partyName, rescources.RobotoTitleFont)
+	return ui.NewText(pos, "Party: "+p.c.partyName, rescources.RobotoTitleFont)
 }
 
 func (p *partyScreen) playerList() []*ui.Text {

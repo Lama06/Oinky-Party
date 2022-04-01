@@ -22,8 +22,8 @@ var _ game.Party = (*party)(nil)
 func newParty(server *server, name string) *party {
 	return &party{
 		server: server,
-		id:   rand.Int31(),
-		name: name,
+		id:     rand.Int31(),
+		name:   name,
 	}
 }
 

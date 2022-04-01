@@ -9,7 +9,7 @@ import (
 
 var (
 	textColor      = colornames.White
-	textHoverColor = colornames.Snow
+	textHoverColor = colornames.Green
 )
 
 type Text struct {

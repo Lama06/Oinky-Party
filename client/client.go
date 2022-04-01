@@ -77,7 +77,7 @@ func (c *client) start() {
 		return
 	}
 
-	c.currentScreen = newMenuScreen(c)
+	c.currentScreen = newTitleScreen(c)
 
 	ebiten.SetWindowTitle("Oinky Party")
 	ebiten.SetWindowResizable(true)
@@ -232,7 +232,7 @@ func (c *client) handlePacket(packet []byte) error {
 		c.partyId = 0
 		c.partyPlayers = nil
 
-		c.currentScreen = newMenuScreen(c)
+		c.currentScreen = newTitleScreen(c)
 	case protocol.PlayerJoinedPartyPacketName:
 		var playerJoinedParty protocol.PlayerJoinedPartyPacket
 		err := json.Unmarshal(packet, &playerJoinedParty)
