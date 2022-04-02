@@ -1,5 +1,5 @@
-set GOOS=windows
-set GOARCH=amd64
+@set GOOS=windows
+@set GOARCH=amd64
 
-go build -o="Oinkyparty-Client.exe" ./cmd/client
-go build -o="Oinkyparty-Server.exe" ./cmd/server
+go build -o="Oinkyparty-Client-Windows.exe" ./cmd/client
+go build -o="Oinkyparty-Server-Windows.exe" ./cmd/server

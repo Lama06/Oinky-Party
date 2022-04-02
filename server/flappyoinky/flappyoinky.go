@@ -1,36 +1,36 @@
-package flappybird
+package flappyoinky
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	shared "github.com/Lama06/Oinky-Party/flappybird"
+	shared "github.com/Lama06/Oinky-Party/flappyoinky"
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/Lama06/Oinky-Party/server/game"
 	"math/rand"
 )
 
-type bird struct {
+type player struct {
 	id        int32   // Die ID des Spielers, zu dem dieser Vogel gehört
 	positionY float64 // Die Y Position der oberen linken Ecke des Vogels
 	speedY    float64 // Die Geschwindigkeit, mit der positionY pro Tick erhöht wird
 }
 
-func (b *bird) isOutsideWorld() bool {
-	return b.positionY <= 0 || b.positionY-shared.BirdSize >= 1
+func (p *player) isOutsideWorld() bool {
+	return p.positionY <= 0 || p.positionY-shared.OinkySize >= 1
 }
 
-func (b *bird) isTouchingObstacle(obstacles []*obstacle) bool {
+func (p *player) isTouchingObstacle(obstacles []*obstacle) bool {
 	for _, obstacle := range obstacles {
-		if obstacle.posX >= shared.BirdPosX+shared.BirdSize || obstacle.posX+shared.ObstacleWidth <= shared.BirdPosX {
+		if obstacle.posX >= shared.OinkyPosX+shared.OinkySize || obstacle.posX+shared.ObstacleWidth <= shared.OinkyPosX {
 			continue
 		}
 
-		if b.positionY >= obstacle.freeSpaceUpperY && b.positionY+shared.BirdSize <= obstacle.freeSpaceLowerY {
+		if p.positionY >= obstacle.freeSpaceUpperY && p.positionY+shared.OinkySize <= obstacle.freeSpaceLowerY {
 			continue
 		}
 
-		if b.positionY+shared.BirdSize <= obstacle.freeSpaceLowerY && b.positionY >= obstacle.freeSpaceUpperY {
+		if p.positionY+shared.OinkySize <= obstacle.freeSpaceLowerY && p.positionY >= obstacle.freeSpaceUpperY {
 			continue
 		}
 
@@ -40,20 +40,20 @@ func (b *bird) isTouchingObstacle(obstacles []*obstacle) bool {
 	return false
 }
 
-func (b *bird) tick() {
-	b.speedY += shared.BirdSpeedYIncreasePerTick
-	b.positionY += b.speedY
+func (p *player) tick() {
+	p.speedY += shared.OinkySpeedYIncreasePerTick
+	p.positionY += p.speedY
 }
 
-func (b *bird) jump() {
-	b.speedY = shared.BirdSpeedYAfterJump
+func (p *player) jump() {
+	p.speedY = shared.OinkySpeedYAfterJump
 }
 
-func (b *bird) toUpdateData() shared.PlayerUpdateData {
+func (p *player) toUpdateData() shared.PlayerUpdateData {
 	return shared.PlayerUpdateData{
-		Player:    b.id,
-		PositionY: b.positionY,
-		SpeedY:    b.speedY,
+		Player:    p.id,
+		PositionY: p.positionY,
+		SpeedY:    p.speedY,
 	}
 }
 
@@ -87,7 +87,7 @@ func (o obstacle) toUpdateData() shared.ObstacleUpdateData {
 
 type impl struct {
 	party                  game.Party
-	playerDataMap          map[int32]*bird
+	alivePlayers           map[int32]*player
 	ticksUntilNextObstacle int
 	obstacleCount          int32
 	obstacles              []*obstacle
@@ -98,7 +98,7 @@ var _ game.Game = (*impl)(nil)
 func Create(party game.Party) game.Game {
 	return &impl{
 		party:                  party,
-		playerDataMap:          make(map[int32]*bird, len(party.Players())),
+		alivePlayers:           make(map[int32]*player, len(party.Players())),
 		obstacles:              make([]*obstacle, 0),
 		ticksUntilNextObstacle: shared.ObstacleSpawnRate,
 	}
@@ -107,10 +107,10 @@ func Create(party game.Party) game.Game {
 var _ game.Creator = Create
 
 func (i *impl) HandleGameStarted() {
-	for _, player := range i.party.Players() {
-		i.playerDataMap[player.Id()] = &bird{
-			id:        player.Id(),
-			positionY: shared.BirdStartPosY,
+	for _, partyPlayer := range i.party.Players() {
+		i.alivePlayers[partyPlayer.Id()] = &player{
+			id:        partyPlayer.Id(),
+			positionY: shared.OinkyStartPosY,
 			speedY:    0,
 		}
 	}
@@ -119,7 +119,11 @@ func (i *impl) HandleGameStarted() {
 func (i *impl) HandleGameEnded() {}
 
 func (i *impl) HandlePlayerLeft(player game.Player) {
-	delete(i.playerDataMap, player.Id())
+	delete(i.alivePlayers, player.Id())
+
+	if len(i.alivePlayers) == 0 {
+		i.party.EndGame()
+	}
 }
 
 func (i *impl) HandlePacket(sender game.Player, data []byte) error {
@@ -130,7 +134,7 @@ func (i *impl) HandlePacket(sender game.Player, data []byte) error {
 
 	switch packetName {
 	case shared.JumpPacketName:
-		data, ok := i.playerDataMap[sender.Id()]
+		data, ok := i.alivePlayers[sender.Id()]
 		if !ok {
 			return errors.New("invalid player id")
 		}
@@ -151,9 +155,9 @@ func (i *impl) Tick() {
 }
 
 func (i *impl) broadcastUpdatePacket() {
-	players := make([]shared.PlayerUpdateData, 0, len(i.playerDataMap))
-	for _, data := range i.playerDataMap {
-		players = append(players, data.toUpdateData())
+	players := make([]shared.PlayerUpdateData, 0, len(i.alivePlayers))
+	for _, player := range i.alivePlayers {
+		players = append(players, player.toUpdateData())
 	}
 
 	obstacles := make([]shared.ObstacleUpdateData, len(i.obstacles))
@@ -174,13 +178,13 @@ func (i *impl) broadcastUpdatePacket() {
 }
 
 func (i *impl) tickPlayers() (gameEnded bool) {
-	for id, data := range i.playerDataMap {
-		player := i.party.Server().PlayerById(id)
+	for id, player := range i.alivePlayers {
+		partyPlayer := i.party.Server().PlayerById(id)
 
-		data.tick()
+		player.tick()
 
-		if data.isOutsideWorld() || data.isTouchingObstacle(i.obstacles) {
-			gameEnded := i.killPlayer(player)
+		if player.isOutsideWorld() || player.isTouchingObstacle(i.obstacles) {
+			gameEnded := i.killPlayer(partyPlayer)
 			if gameEnded {
 				return true
 			}
@@ -191,9 +195,9 @@ func (i *impl) tickPlayers() (gameEnded bool) {
 }
 
 func (i *impl) killPlayer(player game.Player) (gameEnded bool) {
-	delete(i.playerDataMap, player.Id())
+	delete(i.alivePlayers, player.Id())
 
-	if len(i.playerDataMap) == 0 {
+	if len(i.alivePlayers) == 0 {
 		i.party.EndGame()
 		return true
 	}

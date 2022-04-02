@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	//go:embed roboto_thin.ttf
+	//go:embed roboto_bold.ttf
 	robotoFontData   []byte
 	RobotoNormalFont font.Face
 	RobotoTitleFont  font.Face
@@ -23,7 +23,7 @@ func init() {
 	}
 
 	RobotoNormalFont, err = opentype.NewFace(robotoFont, &opentype.FaceOptions{
-		Size:    24,
+		Size:    28,
 		DPI:     72,
 		Hinting: font.HintingFull,
 	})
@@ -32,7 +32,7 @@ func init() {
 	}
 
 	RobotoTitleFont, err = opentype.NewFace(robotoFont, &opentype.FaceOptions{
-		Size:    55,
+		Size:    70,
 		DPI:     72,
 		Hinting: font.HintingFull,
 	})

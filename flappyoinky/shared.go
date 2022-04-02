@@ -1,4 +1,4 @@
-package flappybird
+package flappyoinky
 
 // Die X und Y Koordinaten der Vögel und Hindernisse sind vom Typ float64 und liegen im Bereich 0 bis 1.
 // Der Punkt (0, 0) liegt in der oberen linken Ecke des Bildschirmes.
@@ -11,11 +11,11 @@ package flappybird
 // Wenn ein Spieler gestorben ist, erkennt der Client das daran, dass dieser Spieler nicht mehr im UpdatePacket zu finden ist.
 
 const (
-	BirdSize                  = 0.06             // Die Höhe und Breite des Vogels
-	BirdPosX                  = 0.5 - BirdSize/2 // Die permanente X Position der oberen linken Ecke des Vogels
-	BirdStartPosY             = 0.5 - BirdSize/2 // Die Y Position der oberen linken Ecke der Vögel, bei der sie sich am Anfang des Spieles befinden
-	BirdSpeedYIncreasePerTick = 0.001            // Der Wert, mit dem die Geschwindigkeit der Vögel jede Sekunde erhöht wird
-	BirdSpeedYAfterJump       = -0.02            // Der Wert der Geschwindigkeit der Vögel nach einem Sprung
+	OinkySize                  = 0.06              // Die Höhe und Breite des Vogels
+	OinkyPosX                  = 0.5 - OinkySize/2 // Die permanente X Position der oberen linken Ecke des Vogels
+	OinkyStartPosY             = 0.5 - OinkySize/2 // Die Y Position der oberen linken Ecke der Vögel, bei der sie sich am Anfang des Spieles befinden
+	OinkySpeedYIncreasePerTick = 0.001             // Der Wert, mit dem die Geschwindigkeit der Vögel jede Sekunde erhöht wird
+	OinkySpeedYAfterJump       = -0.02             // Der Wert der Geschwindigkeit der Vögel nach einem Sprung
 
 	ObstacleSpawnRate       = 70     // Der Abstand in Ticks, in dem Hindernisse spawnen
 	ObstacleWidth           = 0.06   // Die Breite der Hindernisse
@@ -25,7 +25,7 @@ const (
 
 // Client zu Server
 
-const JumpPacketName = "flappy-bird-jump"
+const JumpPacketName = "oinky-bird-jump"
 
 type JumpPacket struct {
 	PacketName string
@@ -45,7 +45,7 @@ type ObstacleUpdateData struct {
 	PosX            float64 // Die aktuelle X Position der linken Kante des Hindernisses
 }
 
-const UpdatePacketName = "flappy-bird-update"
+const UpdatePacketName = "oinky-bird-update"
 
 type UpdatePacket struct {
 	PacketName    string

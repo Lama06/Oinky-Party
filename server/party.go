@@ -203,10 +203,12 @@ func (p *partiesManager) byPlayer(target *player) *party {
 	return nil
 }
 
-func (p *partiesManager) toData() []protocol.PartyData {
-	parties := make([]protocol.PartyData, len(*p))
-	for i, party := range *p {
-		parties[i] = party.toData()
+func (p *partiesManager) toListPartiesData() []protocol.PartyData {
+	parties := make([]protocol.PartyData, 0, len(*p))
+	for _, party := range *p {
+		if party.currentGame == nil {
+			parties = append(parties, party.toData())
+		}
 	}
 	return parties
 }

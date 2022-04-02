@@ -1,4 +1,4 @@
-package flappybird
+package flappyoinky
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"github.com/Lama06/Oinky-Party/client/game"
 	"github.com/Lama06/Oinky-Party/client/rescources"
 	"github.com/Lama06/Oinky-Party/client/ui"
-	shared "github.com/Lama06/Oinky-Party/flappybird"
+	shared "github.com/Lama06/Oinky-Party/flappyoinky"
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -23,9 +23,9 @@ import (
 )
 
 var (
-	//go:embed bird.png
-	birdImageData []byte
-	birdImage     = loadImage(birdImageData)
+	//go:embed oinky.png
+	oinkyImageData []byte
+	oinkyImage     = loadImage(oinkyImageData)
 )
 
 func loadImage(data []byte) image.Image {
@@ -37,12 +37,12 @@ func loadImage(data []byte) image.Image {
 }
 
 // Die Größe des Vogels wird anhand der Größe des Fensters zu einem Quadrat ergänzt.
-func getVisualBirdSize() int {
+func getVisualOinkySize() int {
 	windowWidth, windowHeight := ebiten.WindowSize()
 	if windowWidth >= windowHeight {
-		return int(shared.BirdSize * float64(windowWidth))
+		return int(shared.OinkySize * float64(windowWidth))
 	} else {
-		return int(shared.BirdSize * float64(windowHeight))
+		return int(shared.OinkySize * float64(windowHeight))
 	}
 }
 
@@ -62,7 +62,7 @@ func (p *player) clientTick(delta float64) {
 
 	skippedTicks := int(math.Trunc(delta))
 	for i := 1; i <= skippedTicks; i++ {
-		speedY += shared.BirdSpeedYIncreasePerTick
+		speedY += shared.OinkySpeedYIncreasePerTick
 		posY += speedY
 	}
 	remainingDelta := delta - float64(skippedTicks)
@@ -91,16 +91,16 @@ func (p *player) clientTick(delta float64) {
 
 func (p *player) draw(client game.Client, screen *ebiten.Image) {
 	windowWidth, windowHeight := ebiten.WindowSize()
-	img := ebiten.NewImageFromImage(birdImage)
+	img := ebiten.NewImageFromImage(oinkyImage)
 	imgWidth, imgHeight := img.Size()
-	birdSize := getVisualBirdSize()
-	birdXScale, birdYScale := float64(birdSize)/float64(imgWidth), float64(birdSize)/float64(imgHeight)
-	birdX, birdY := shared.BirdPosX*float64(windowWidth), p.clientPosY*float64(windowHeight)
+	oinkySize := getVisualOinkySize()
+	oinkyXScale, oinkyYScale := float64(oinkySize)/float64(imgWidth), float64(oinkySize)/float64(imgHeight)
+	oinkyX, oinkyY := shared.OinkyPosX*float64(windowWidth), p.clientPosY*float64(windowHeight)
 
 	var drawOptions ebiten.DrawImageOptions
 	drawOptions.GeoM.Rotate(p.rotation)
-	drawOptions.GeoM.Scale(birdXScale, birdYScale)
-	drawOptions.GeoM.Translate(birdX, birdY)
+	drawOptions.GeoM.Scale(oinkyXScale, oinkyYScale)
+	drawOptions.GeoM.Translate(oinkyX, oinkyY)
 	screen.DrawImage(img, &drawOptions)
 
 	if p.id != client.Id() {
@@ -112,7 +112,7 @@ func (p *player) draw(client game.Client, screen *ebiten.Image) {
 			}
 		}
 
-		textX, textY := birdX+float64(birdSize)+50, birdY+float64(birdSize)/2
+		textX, textY := oinkyX+float64(oinkySize)+50, oinkyY+float64(oinkySize)/2
 		text.Draw(screen, partyPlayer.Name, rescources.RobotoNormalFont, int(textX), int(textY), colornames.Black)
 	}
 }
@@ -174,8 +174,8 @@ func (i *impl) HandleGameStarted() {
 	for index, partyPlayer := range partyPlayers {
 		i.players[index] = &player{
 			id:           partyPlayer.Id,
-			serverPosY:   shared.BirdStartPosY,
-			clientPosY:   shared.BirdStartPosY,
+			serverPosY:   shared.OinkyStartPosY,
+			clientPosY:   shared.OinkyStartPosY,
 			serverSpeedY: 0,
 			clientSpeedY: 0,
 			rotation:     0,
@@ -239,7 +239,9 @@ func (i *impl) HandlePacket(packet []byte) error {
 func (i *impl) obstacleCounter() *ui.Text {
 	windowWidth, _ := ebiten.WindowSize()
 
-	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, 50), strconv.Itoa(int(i.obstacleCount)), rescources.RobotoTitleFont)
+	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, 50), strconv.Itoa(int(i.obstacleCount)), ui.TextColorPalette{
+		Color: colornames.Black,
+	}, rescources.RobotoTitleFont)
 }
 
 func (i *impl) Draw(screen *ebiten.Image) {

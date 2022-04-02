@@ -4,32 +4,34 @@ import (
 	"github.com/Lama06/Oinky-Party/client/rescources"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
-	"golang.org/x/image/colornames"
+	"image/color"
 )
 
 const (
 	buttonPadding = 20
 )
 
-var (
-	buttonBackgroundColor      = colornames.Aqua
-	buttonTextColor            = colornames.Black
-	buttonHoverBackgroundColor = colornames.Blue
-	buttonHoverTextColor       = colornames.Snow
-)
+type ButtonColorPalette struct {
+	BackgroundColor      color.Color
+	BackgroundHoverColor color.Color
+	TextColor            color.Color
+	TextHoverColor       color.Color
+}
 
 type Button struct {
 	pos      Position
 	text     string
+	color    ButtonColorPalette
 	callback func()
 }
 
 var _ Component = (*Button)(nil)
 
-func NewButton(pos Position, text string, callback func()) *Button {
+func NewButton(pos Position, text string, color ButtonColorPalette, callback func()) *Button {
 	return &Button{
 		pos:      pos,
 		text:     text,
+		color:    color,
 		callback: callback,
 	}
 }
@@ -51,11 +53,15 @@ func (b *Button) Draw(screen *ebiten.Image) {
 	buttonWidth, buttonHeight := b.getDimensions()
 	topLeftPosition := b.pos.ToTopLeftPosition(buttonWidth, buttonHeight)
 
-	bgColor := buttonBackgroundColor
-	textColor := buttonTextColor
+	bgColor := b.color.BackgroundColor
+	textColor := b.color.TextColor
 	if IsHovered(topLeftPosition, buttonWidth, buttonHeight) {
-		bgColor = buttonHoverBackgroundColor
-		textColor = buttonHoverTextColor
+		if b.color.BackgroundHoverColor != nil {
+			bgColor = b.color.BackgroundHoverColor
+		}
+		if b.color.TextHoverColor != nil {
+			textColor = b.color.TextHoverColor
+		}
 	}
 
 	img := ebiten.NewImage(buttonWidth, buttonHeight)

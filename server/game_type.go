@@ -1,15 +1,15 @@
 package server
 
 import (
-	"github.com/Lama06/Oinky-Party/server/flappybird"
+	"github.com/Lama06/Oinky-Party/server/flappyoinky"
 	"github.com/Lama06/Oinky-Party/server/game"
 )
 
 var gameTypes = []gameType{
 	{
-		name: "flappybird",
+		name: "flappyoinky",
 		creator: func(party game.Party) game.Game {
-			return flappybird.Create(party)
+			return flappyoinky.Create(party)
 		},
 	},
 }

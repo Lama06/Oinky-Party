@@ -12,8 +12,6 @@ import (
 )
 
 func StartServer() {
-	fmt.Println("server starting")
-
 	newServer().start()
 }
 
@@ -35,6 +33,7 @@ func newServer() *server {
 
 func (s *server) start() {
 	log.SetFlags(log.Lshortfile | log.Ltime)
+	log.Println("server starting...")
 
 	go s.listenForConnections()
 
@@ -132,7 +131,7 @@ func (s *server) handlePacket(player *player, data []byte) error {
 	case protocol.QueryPartiesPacketName:
 		listParties, err := json.Marshal(protocol.ListPartiesPacket{
 			PacketName: protocol.ListPartiesPacketName,
-			Parties:    s.parties.toData(),
+			Parties:    s.parties.toListPartiesData(),
 		})
 		if err != nil {
 			panic(err)

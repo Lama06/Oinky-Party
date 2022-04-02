@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Lama06/Oinky-Party/client/flappybird"
+	"github.com/Lama06/Oinky-Party/client/flappyoinky"
 	"github.com/Lama06/Oinky-Party/client/game"
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -21,9 +21,9 @@ type gameType struct {
 
 var gameTypes = []gameType{
 	{
-		name:        "flappybird",
-		displayName: "Flappy Bird",
-		creator:     flappybird.Create,
+		name:        "flappyoinky",
+		displayName: "Flappy Oinky",
+		creator:     flappyoinky.Create,
 	},
 }
 
@@ -67,9 +67,8 @@ func newClient() *client {
 }
 
 func (c *client) start() {
-	fmt.Println("client starting...")
-
 	log.SetFlags(log.Lshortfile | log.Ltime)
+	log.Println("client starting...")
 
 	err := c.connect()
 	if err != nil {
@@ -309,8 +308,8 @@ func (c *client) handlePacket(packet []byte) error {
 		c.currentGame = nil
 		c.currentScreen = newPartyScreen(c)
 	default:
-		if packetHandlerComponent, ok := c.currentScreen.(packetHandlerScreen); ok {
-			err := packetHandlerComponent.HandlePacket(packet)
+		if packetHandlerScreen, ok := c.currentScreen.(packetHandlerScreen); ok {
+			err := packetHandlerScreen.HandlePacket(packet)
 			if err != nil {
 				return fmt.Errorf("screen failed to handle error: %w", err)
 			}

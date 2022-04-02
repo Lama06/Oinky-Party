@@ -1,5 +1,4 @@
-set GOOS=linux
-set GOARCH=arm
+@set GOOS=linux
+@set GOARCH=arm
 
-go build -o="Oinkyparty-Client.exe" ./cmd/client
-go build -o="Oinkyparty-Server.exe" ./cmd/server
+go build -o="Oinkyparty-Server-Raspberry-Pi" ./cmd/server
