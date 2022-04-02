@@ -102,7 +102,12 @@ func (p *party) removePlayer(target *player) {
 	target.SendPacket(youLeftParty)
 }
 
-func (p *party) startGame(t gameType) error {
+func (p *party) startGame(packet protocol.StartGamePacket) error {
+	t, ok := gameTypeByName(packet.GameType)
+	if !ok {
+		return fmt.Errorf("cannot find game type %s", packet.GameType)
+	}
+
 	if p.currentGame != nil {
 		return errors.New("a game is already running")
 	}

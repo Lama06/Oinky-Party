@@ -47,12 +47,7 @@ func (p *player) toData() protocol.PlayerData {
 }
 
 func (p *player) forwardMessagesFromPlayer() {
-	defer func() {
-		err := p.disconnect()
-		if err != nil {
-			log.Println(fmt.Errorf("failed to disconnect player: %w", err))
-		}
-	}()
+	defer p.disconnect()
 
 	for {
 		msgInSizeBuffer := make([]byte, 4)
@@ -77,12 +72,7 @@ func (p *player) forwardMessagesFromPlayer() {
 }
 
 func (p *player) forwardMessagesToPlayer() {
-	defer func() {
-		err := p.disconnect()
-		if err != nil {
-			log.Println(fmt.Errorf("failed to disconnect player: %w", err))
-		}
-	}()
+	defer p.disconnect()
 
 	for msgOut := range p.send {
 		msgOutSize := protocol.Int32ToBytes(int32(len(msgOut)))
@@ -99,19 +89,17 @@ func (p *player) forwardMessagesToPlayer() {
 	}
 }
 
-func (p *player) disconnect() error {
-	var resultErr error
+func (p *player) disconnect() {
 	p.disconnectOnce.Do(func() {
 		log.Printf("disconnecting player: %s", p.name)
 
 		err := p.conn.Close()
 		if err != nil {
-			resultErr = fmt.Errorf("failed to close the connection: %w", err)
+			log.Println(fmt.Errorf("failed to close the connection to player: %w", err))
 		}
 
 		p.server.disconnects <- p
 	})
-	return resultErr
 }
 
 func (p *player) SendPacket(data []byte) {
@@ -119,10 +107,7 @@ func (p *player) SendPacket(data []byte) {
 	case p.send <- data:
 		return
 	default:
-		err := p.disconnect()
-		if err != nil {
-			log.Println(fmt.Errorf("failed to disconnect the player: %w", err))
-		}
+		p.disconnect()
 	}
 }
 

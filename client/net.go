@@ -26,12 +26,7 @@ func (c *client) connect() error {
 }
 
 func (c *client) forwardMessagesFromServer() {
-	defer func() {
-		err := c.disconnect()
-		if err != nil {
-			log.Println(fmt.Errorf("failed to close the connection to the server: %w", err))
-		}
-	}()
+	defer c.disconnect()
 
 	for {
 		msgInSizeBuffer := make([]byte, 4)
@@ -56,12 +51,7 @@ func (c *client) forwardMessagesFromServer() {
 }
 
 func (c *client) forwardMessagesToServer() {
-	defer func() {
-		err := c.disconnect()
-		if err != nil {
-			log.Println(fmt.Errorf("failed to close the connection to the server: %w", err))
-		}
-	}()
+	defer c.disconnect()
 
 	for msgOut := range c.send {
 		msgOutSize := protocol.Int32ToBytes(int32(len(msgOut)))
@@ -83,21 +73,16 @@ func (c *client) SendPacket(packet []byte) {
 	case c.send <- packet:
 		return
 	default:
-		err := c.disconnect()
-		if err != nil {
-			log.Println(fmt.Errorf("failed to disconnect the player: %w", err))
-		}
+		c.disconnect()
 		log.Println(errors.New("packet buffer is full"))
 	}
 }
 
-func (c *client) disconnect() error {
-	var resultErr error
+func (c *client) disconnect() {
 	c.disconnectOnce.Do(func() {
 		err := c.conn.Close()
 		if err != nil {
-			resultErr = fmt.Errorf("error while closing connection to server: %w", err)
+			log.Println(fmt.Errorf("error while closing connection to server: %w", err))
 		}
 	})
-	return resultErr
 }

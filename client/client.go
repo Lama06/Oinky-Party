@@ -35,7 +35,6 @@ var _ ebiten.Game = (*client)(nil)
 
 func newClient() *client {
 	return &client{
-		conn:    nil,
 		send:    make(chan []byte, 100),
 		receive: make(chan []byte, 100),
 	}
@@ -55,6 +54,7 @@ func (c *client) start() {
 
 	ebiten.SetWindowTitle("Oinky Party")
 	ebiten.SetWindowResizable(true)
+	ebiten.MaximizeWindow()
 
 	err = ebiten.RunGame(c)
 	if err != nil {

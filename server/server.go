@@ -37,7 +37,7 @@ func (s *server) start() {
 
 	go s.listenForConnections()
 
-	ticker := time.Tick(50 * time.Millisecond)
+	ticker := time.Tick(protocol.TickSpeed * time.Millisecond)
 	for {
 		for len(s.newConnections) != 0 {
 			s.handleNewConnection(<-s.newConnections)
@@ -184,17 +184,12 @@ func (s *server) handlePacket(player *player, data []byte) error {
 			return fmt.Errorf("failed to unmarshal packet: %w", err)
 		}
 
-		t, ok := gameTypeByName(startGame.GameType)
-		if !ok {
-			return fmt.Errorf("cannot find game type %s", startGame.GameType)
-		}
-
 		currentParty := s.parties.byPlayer(player)
 		if currentParty == nil {
 			return errors.New("player is not in a party")
 		}
 
-		err = currentParty.startGame(t)
+		err = currentParty.startGame(startGame)
 		if err != nil {
 			return fmt.Errorf("failed to start game: %w", err)
 		}
