@@ -95,7 +95,7 @@ func (p *player) SendPacket(data []byte) {
 	case p.send <- data:
 		return
 	default:
-		log.Printf("packet buffer of player if full: %s(%d)\n", p.name, p.id)
+		log.Printf("packet buffer of player is full: %s(%d)\n", p.name, p.id)
 		p.disconnect()
 	}
 }
