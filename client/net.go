@@ -73,8 +73,8 @@ func (c *client) SendPacket(packet []byte) {
 	case c.send <- packet:
 		return
 	default:
-		c.disconnect()
 		log.Println(errors.New("packet buffer is full"))
+		c.disconnect()
 	}
 }
 
@@ -84,5 +84,6 @@ func (c *client) disconnect() {
 		if err != nil {
 			log.Println(fmt.Errorf("error while closing connection to server: %w", err))
 		}
+		c.disconnected <- struct{}{}
 	})
 }

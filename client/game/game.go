@@ -18,7 +18,7 @@ type Client interface {
 
 	PartyId() int32
 
-	PartyPlayers() []PartyPlayer
+	PartyPlayers() map[int32]PartyPlayer
 
 	SendPacket(packet []byte)
 }

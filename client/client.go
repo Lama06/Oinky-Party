@@ -12,10 +12,15 @@ import (
 	"sync"
 )
 
+func StartClient() {
+	newClient().start()
+}
+
 type client struct {
 	conn           net.Conn
 	send           chan []byte
 	receive        chan []byte
+	disconnected   chan struct{}
 	disconnectOnce sync.Once
 
 	name string
@@ -24,7 +29,7 @@ type client struct {
 	inParty      bool
 	partyName    string
 	partyId      int32
-	partyPlayers []game.PartyPlayer
+	partyPlayers map[int32]game.PartyPlayer
 
 	currentScreen screen
 	currentGame   game.Game
@@ -35,8 +40,10 @@ var _ ebiten.Game = (*client)(nil)
 
 func newClient() *client {
 	return &client{
-		send:    make(chan []byte, 100),
-		receive: make(chan []byte, 100),
+		send:         make(chan []byte, 100),
+		receive:      make(chan []byte, 100),
+		disconnected: make(chan struct{}, 1),
+		partyPlayers: map[int32]game.PartyPlayer{},
 	}
 }
 
@@ -50,11 +57,11 @@ func (c *client) start() {
 		return
 	}
 
-	c.currentScreen = newTitleScreen(c)
-
 	ebiten.SetWindowTitle("Oinky Party")
 	ebiten.SetWindowResizable(true)
 	ebiten.MaximizeWindow()
+
+	c.currentScreen = newTitleScreen(c)
 
 	err = ebiten.RunGame(c)
 	if err != nil {
@@ -88,12 +95,16 @@ func (c *client) handlePacket(packet []byte) error {
 			return fmt.Errorf("failed to unmarshal packet: %w", err)
 		}
 
+		if c.inParty {
+			return errors.New("already in a party")
+		}
+
 		c.inParty = true
 		c.partyName = youJoinedParty.Party.Name
 		c.partyId = youJoinedParty.Party.Id
-		c.partyPlayers = make([]game.PartyPlayer, len(youJoinedParty.Party.Players))
-		for i, player := range youJoinedParty.Party.Players {
-			c.partyPlayers[i] = game.PartyPlayer{
+		c.partyPlayers = make(map[int32]game.PartyPlayer, len(youJoinedParty.Party.Players))
+		for _, player := range youJoinedParty.Party.Players {
+			c.partyPlayers[player.Id] = game.PartyPlayer{
 				Name: player.Name,
 				Id:   player.Id,
 			}
@@ -105,6 +116,10 @@ func (c *client) handlePacket(packet []byte) error {
 		err := json.Unmarshal(packet, &youLeftParty)
 		if err != nil {
 			return fmt.Errorf("failed to unmarshal packet: %w", err)
+		}
+
+		if !c.inParty {
+			return errors.New("not in a party")
 		}
 
 		c.inParty = false
@@ -128,7 +143,7 @@ func (c *client) handlePacket(packet []byte) error {
 			Name: playerJoinedParty.Player.Name,
 			Id:   playerJoinedParty.Player.Id,
 		}
-		c.partyPlayers = append(c.partyPlayers, player)
+		c.partyPlayers[player.Id] = player
 	case protocol.PlayerLeftPartyPacketName:
 		var playerLeftParty protocol.PlayerLeftPartyPacket
 		err := json.Unmarshal(packet, &playerLeftParty)
@@ -140,12 +155,7 @@ func (c *client) handlePacket(packet []byte) error {
 			return errors.New("received player left party packet but client is not in a party")
 		}
 
-		for i, player := range c.partyPlayers {
-			if player.Id == playerLeftParty.Id {
-				c.partyPlayers = append(c.partyPlayers[:i], c.partyPlayers[i+1:]...)
-				break
-			}
-		}
+		delete(c.partyPlayers, playerLeftParty.Id)
 	case protocol.GameStartedPacketName:
 		var gameStarted protocol.GameStartedPacket
 		err := json.Unmarshal(packet, &gameStarted)
@@ -189,8 +199,8 @@ func (c *client) handlePacket(packet []byte) error {
 		c.currentGame = nil
 		c.currentScreen = newPartyScreen(c)
 	default:
-		if packetHandlerScreen, ok := c.currentScreen.(packetHandlerScreen); ok {
-			err := packetHandlerScreen.HandlePacket(packet)
+		if packetHandler, ok := c.currentScreen.(packetHandlerScreen); ok {
+			err := packetHandler.HandlePacket(packet)
 			if err != nil {
 				return fmt.Errorf("screen failed to handle error: %w", err)
 			}
@@ -216,16 +226,24 @@ func (c *client) PartyId() int32 {
 	return c.partyId
 }
 
-func (c *client) PartyPlayers() []game.PartyPlayer {
-	return c.partyPlayers
+func (c *client) PartyPlayers() map[int32]game.PartyPlayer {
+	partyPlayers := make(map[int32]game.PartyPlayer, len(c.partyPlayers))
+	for id, player := range c.partyPlayers {
+		partyPlayers[id] = player
+	}
+	return partyPlayers
 }
 
 func (c *client) Update() error {
+	if len(c.disconnected) == 1 {
+		return errors.New("disconnected from the server")
+	}
+
 	for len(c.receive) != 0 {
 		packet := <-c.receive
 		err := c.handlePacket(packet)
 		if err != nil {
-			return err
+			log.Println(fmt.Errorf("failed to handle packet from server: %w", err))
 		}
 	}
 
@@ -244,8 +262,4 @@ func (c *client) Draw(screen *ebiten.Image) {
 
 func (c *client) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return outsideWidth, outsideHeight
-}
-
-func StartClient() {
-	newClient().start()
 }

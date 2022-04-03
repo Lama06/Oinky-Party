@@ -5,7 +5,6 @@ import (
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/Lama06/Oinky-Party/server/game"
 	"log"
-	"math/rand"
 	"net"
 	"sync"
 )
@@ -27,17 +26,6 @@ type player struct {
 }
 
 var _ game.Player = (*player)(nil)
-
-func newPlayer(conn net.Conn, server *server) *player {
-	return &player{
-		conn:    conn,
-		name:    randomPlayerNames[rand.Intn(len(randomPlayerNames))],
-		id:      rand.Int31(),
-		send:    make(chan []byte, 100),
-		receive: make(chan []byte, 100),
-		server:  server,
-	}
-}
 
 func (p *player) toData() protocol.PlayerData {
 	return protocol.PlayerData{
@@ -107,6 +95,7 @@ func (p *player) SendPacket(data []byte) {
 	case p.send <- data:
 		return
 	default:
+		log.Printf("packet buffer of player if full: %s(%d)\n", p.name, p.id)
 		p.disconnect()
 	}
 }
@@ -119,23 +108,4 @@ func (p *player) Name() string {
 	return p.name
 }
 
-type playerManager []*player
-
-func (p *playerManager) byId(id int32) *player {
-	for _, player := range *p {
-		if player.id == id {
-			return player
-		}
-	}
-
-	return nil
-}
-
-func (p *playerManager) remove(target *player) {
-	for i, player := range *p {
-		if player == target {
-			*p = append((*p)[:i], (*p)[i+1:]...)
-			break
-		}
-	}
-}
+type players map[int32]*player

@@ -151,7 +151,7 @@ func (o *obstacle) draw(screen *ebiten.Image) {
 type impl struct {
 	client        game.Client
 	lastTickTime  int64 // Die Zeit in Millisekunden, bei der das letzte Mal die Daten vom Server aktualisiert wurden
-	players       []*player
+	players       map[int32]*player
 	obstacles     []*obstacle
 	obstacleCount int32
 }
@@ -170,9 +170,9 @@ func (i *impl) HandleGameStarted() {
 	i.lastTickTime = time.Now().UnixMilli()
 
 	partyPlayers := i.client.PartyPlayers()
-	i.players = make([]*player, len(partyPlayers))
-	for index, partyPlayer := range partyPlayers {
-		i.players[index] = &player{
+	i.players = make(map[int32]*player, len(partyPlayers))
+	for id, partyPlayer := range partyPlayers {
+		i.players[id] = &player{
 			id:           partyPlayer.Id,
 			serverPosY:   shared.OinkyStartPosY,
 			clientPosY:   shared.OinkyStartPosY,
@@ -204,12 +204,12 @@ func (i *impl) HandlePacket(packet []byte) error {
 		}
 
 		oldRotations := make(map[int32]float64, len(i.players))
-		for _, player := range i.players {
-			oldRotations[player.id] = player.rotation
+		for id, player := range i.players {
+			oldRotations[id] = player.rotation
 		}
-		i.players = make([]*player, len(update.Players))
-		for index, playerData := range update.Players {
-			i.players[index] = &player{
+		i.players = make(map[int32]*player, len(update.Players))
+		for _, playerData := range update.Players {
+			i.players[playerData.Player] = &player{
 				id:           playerData.Player,
 				serverPosY:   playerData.PositionY,
 				clientPosY:   playerData.PositionY,
@@ -247,8 +247,16 @@ func (i *impl) obstacleCounter() *ui.Text {
 func (i *impl) Draw(screen *ebiten.Image) {
 	screen.Fill(colornames.Lightblue)
 
-	for _, player := range i.players {
+	for id, player := range i.players {
+		if id == i.client.Id() {
+			continue
+		}
+
 		player.draw(i.client, screen)
+	}
+
+	if i.alive() {
+		i.players[i.client.Id()].draw(i.client, screen)
 	}
 
 	for _, obstacle := range i.obstacles {
@@ -283,13 +291,8 @@ func (i *impl) Update() {
 }
 
 func (i *impl) alive() bool {
-	for _, player := range i.players {
-		if player.id == i.client.Id() {
-			return true
-		}
-	}
-
-	return false
+	_, ok := i.players[i.client.Id()]
+	return ok
 }
 
 func (i *impl) delta() float64 {

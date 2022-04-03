@@ -343,11 +343,13 @@ func (p *partyScreen) playerList() []*ui.Text {
 	windowWidth, windowHeight := ebiten.WindowSize()
 
 	playerList := make([]*ui.Text, 0)
-	for i, player := range p.c.partyPlayers {
+	i := 0
+	for _, player := range p.c.partyPlayers {
 		playerList = append(playerList, ui.NewText(ui.NewCenteredPosition(
 			windowWidth/2,
 			100+windowHeight/3+100*i,
 		), player.Name, defaultTextColors, rescources.RobotoNormalFont))
+		i++
 	}
 
 	return playerList

@@ -179,7 +179,7 @@ func (i *impl) broadcastUpdatePacket() {
 
 func (i *impl) tickPlayers() (gameEnded bool) {
 	for id, player := range i.alivePlayers {
-		partyPlayer := i.party.Server().PlayerById(id)
+		partyPlayer := i.party.Players()[id]
 
 		player.tick()
 

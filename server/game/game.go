@@ -2,12 +2,6 @@ package game
 
 type Creator func(party Party) Game
 
-type Server interface {
-	PlayerById(id int32) Player
-
-	PartyById(id int32) Party
-}
-
 type Player interface {
 	Id() int32
 
@@ -17,13 +11,11 @@ type Player interface {
 }
 
 type Party interface {
-	Server() Server
-
 	Id() int32
 
 	Name() string
 
-	Players() []Player
+	Players() map[int32]Player
 
 	BroadcastPacket([]byte)
 

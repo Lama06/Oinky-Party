@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Lama06/Oinky-Party/protocol"
-	"github.com/Lama06/Oinky-Party/server/game"
 	"log"
+	"math/rand"
 	"net"
 	"time"
 )
@@ -16,16 +16,16 @@ func StartServer() {
 }
 
 type server struct {
-	players        playerManager
-	parties        partiesManager
+	players        players
+	parties        parties
 	newConnections chan net.Conn
 	disconnects    chan *player
 }
 
-var _ game.Server = (*server)(nil)
-
 func newServer() *server {
 	return &server{
+		players:        map[int32]*player{},
+		parties:        map[int32]*party{},
 		newConnections: make(chan net.Conn, 100),
 		disconnects:    make(chan *player, 100),
 	}
@@ -87,15 +87,26 @@ func (s *server) listenForConnections() {
 		}
 		log.Printf("new connection from %s\n", conn.RemoteAddr())
 
+		err = conn.(*net.TCPConn).SetKeepAlive(true)
+		if err != nil {
+			log.Println(fmt.Errorf("failed to set keep alive state for connection to %s: %w", conn.RemoteAddr(), err))
+		}
+
 		s.newConnections <- conn
 	}
 }
 
 func (s *server) handleNewConnection(conn net.Conn) {
-	player := newPlayer(conn, s)
+	player := &player{
+		conn:    conn,
+		name:    randomPlayerNames[rand.Intn(len(randomPlayerNames))],
+		id:      rand.Int31(),
+		send:    make(chan []byte, 100),
+		receive: make(chan []byte, 100),
+		server:  s,
+	}
 
-	go player.forwardMessagesFromPlayer()
-	go player.forwardMessagesToPlayer()
+	s.players[player.id] = player
 
 	welcome, err := json.Marshal(protocol.WelcomePacket{
 		PacketName: protocol.WelcomePacketName,
@@ -107,7 +118,8 @@ func (s *server) handleNewConnection(conn net.Conn) {
 	}
 	player.SendPacket(welcome)
 
-	s.players = append(s.players, player)
+	go player.forwardMessagesFromPlayer()
+	go player.forwardMessagesToPlayer()
 }
 
 func (s *server) handleDisconnect(p *player) {
@@ -116,11 +128,11 @@ func (s *server) handleDisconnect(p *player) {
 		party.removePlayer(p)
 	}
 
-	s.players.remove(p)
+	delete(s.players, p.id)
 }
 
-func (s *server) handlePacket(player *player, data []byte) error {
-	log.Printf("received packet from %s (id: %d): %s\n", player.name, player.id, string(data))
+func (s *server) handlePacket(sender *player, data []byte) error {
+	log.Printf("received packet from %s (id: %d): %s\n", sender.name, sender.id, string(data))
 
 	packetName, err := protocol.GetPacketName(data)
 	if err != nil {
@@ -136,7 +148,7 @@ func (s *server) handlePacket(player *player, data []byte) error {
 		if err != nil {
 			panic(err)
 		}
-		player.SendPacket(listParties)
+		sender.SendPacket(listParties)
 	case protocol.CreatePartyPacketName:
 		var createParty protocol.CreatePartyPacket
 		err := json.Unmarshal(data, &createParty)
@@ -144,15 +156,20 @@ func (s *server) handlePacket(player *player, data []byte) error {
 			return fmt.Errorf("failed to unmarshal packet: %w", err)
 		}
 
-		currentParty := s.parties.byPlayer(player)
+		currentParty := s.parties.byPlayer(sender)
 		if currentParty != nil {
 			return fmt.Errorf("player is already in a party")
 		}
 
-		party := newParty(s, createParty.Name)
+		party := &party{
+			server:  s,
+			id:      rand.Int31(),
+			name:    createParty.Name,
+			players: map[int32]*player{},
+		}
+		s.parties[party.id] = party
 
-		s.parties = append(s.parties, party)
-		party.addPlayer(player)
+		party.addPlayer(sender)
 	case protocol.JoinPartyPacketName:
 		var joinParty protocol.JoinPartyPacket
 		err := json.Unmarshal(data, &joinParty)
@@ -160,23 +177,27 @@ func (s *server) handlePacket(player *player, data []byte) error {
 			return fmt.Errorf("failed to unmarshal packet: %w", err)
 		}
 
-		currentParty := s.parties.byPlayer(player)
+		currentParty := s.parties.byPlayer(sender)
 		if currentParty != nil {
 			return fmt.Errorf("player is already in a party")
 		}
 
-		newParty := s.parties.byId(joinParty.Id)
-		if newParty == nil {
+		newParty, ok := s.parties[joinParty.Id]
+		if !ok {
 			return fmt.Errorf("failed to find party with id: %d", joinParty.Id)
 		}
 
-		newParty.addPlayer(player)
+		if newParty.currentGame != nil {
+			return errors.New("a game is running in this party")
+		}
+
+		newParty.addPlayer(sender)
 	case protocol.LeavePartyPacketName:
-		currentParty := s.parties.byPlayer(player)
+		currentParty := s.parties.byPlayer(sender)
 		if currentParty == nil {
 			return errors.New("player is not in a party")
 		}
-		currentParty.removePlayer(player)
+		currentParty.removePlayer(sender)
 	case protocol.StartGamePacketName:
 		var startGame protocol.StartGamePacket
 		err := json.Unmarshal(data, &startGame)
@@ -184,39 +205,35 @@ func (s *server) handlePacket(player *player, data []byte) error {
 			return fmt.Errorf("failed to unmarshal packet: %w", err)
 		}
 
-		currentParty := s.parties.byPlayer(player)
+		currentParty := s.parties.byPlayer(sender)
 		if currentParty == nil {
 			return errors.New("player is not in a party")
 		}
 
-		err = currentParty.startGame(startGame)
+		err = currentParty.handleStartGamePacket(startGame)
 		if err != nil {
 			return fmt.Errorf("failed to start game: %w", err)
 		}
 	case protocol.EndGamePacketName:
-		currentParty := s.parties.byPlayer(player)
+		currentParty := s.parties.byPlayer(sender)
 		if currentParty == nil {
 			return errors.New("player is not in a party")
 		}
-		currentParty.EndGame()
+
+		err := currentParty.handleEndGamePacket()
+		if err != nil {
+			return fmt.Errorf("failed to handle end game packet: %w", err)
+		}
 	default:
-		currentParty := s.parties.byPlayer(player)
+		currentParty := s.parties.byPlayer(sender)
 		if currentParty == nil {
 			return errors.New("player is not in a party")
 		}
-		err := currentParty.handlePacket(player, data)
+		err := currentParty.handleGamePacket(sender, data)
 		if err != nil {
 			return fmt.Errorf("party failed to handle the packet: %w", err)
 		}
 	}
 
 	return nil
-}
-
-func (s *server) PlayerById(id int32) game.Player {
-	return s.players.byId(id)
-}
-
-func (s *server) PartyById(id int32) game.Party {
-	return s.parties.byId(id)
 }

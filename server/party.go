@@ -6,31 +6,22 @@ import (
 	"fmt"
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/Lama06/Oinky-Party/server/game"
-	"math/rand"
 )
 
 type party struct {
 	server      *server
 	id          int32
 	name        string
-	players     []*player
+	players     map[int32]*player
 	currentGame game.Game
 }
 
 var _ game.Party = (*party)(nil)
 
-func newParty(server *server, name string) *party {
-	return &party{
-		server: server,
-		id:     rand.Int31(),
-		name:   name,
-	}
-}
-
 func (p *party) toData() protocol.PartyData {
-	players := make([]protocol.PlayerData, len(p.players))
-	for i, player := range p.players {
-		players[i] = player.toData()
+	players := make([]protocol.PlayerData, 0, len(p.players))
+	for _, player := range p.players {
+		players = append(players, player.toData())
 	}
 
 	return protocol.PartyData{
@@ -38,10 +29,6 @@ func (p *party) toData() protocol.PartyData {
 		Id:      p.id,
 		Players: players,
 	}
-}
-
-func (p *party) Server() game.Server {
-	return p.server
 }
 
 func (p *party) BroadcastPacket(data []byte) {
@@ -60,7 +47,7 @@ func (p *party) addPlayer(target *player) {
 	}
 	p.BroadcastPacket(playerJoinedParty)
 
-	p.players = append(p.players, target)
+	p.players[target.id] = target
 
 	youJoinedParty, err := json.Marshal(protocol.YouJoinedPartyPacket{
 		PacketName: protocol.YouJoinedPartyPacketName,
@@ -73,9 +60,9 @@ func (p *party) addPlayer(target *player) {
 }
 
 func (p *party) removePlayer(target *player) {
-	for i, player := range p.players {
+	for id, player := range p.players {
 		if player == target {
-			p.players = append(p.players[:i], p.players[i+1:]...)
+			delete(p.players, id)
 			break
 		}
 	}
@@ -102,7 +89,7 @@ func (p *party) removePlayer(target *player) {
 	target.SendPacket(youLeftParty)
 }
 
-func (p *party) startGame(packet protocol.StartGamePacket) error {
+func (p *party) handleStartGamePacket(packet protocol.StartGamePacket) error {
 	t, ok := gameTypeByName(packet.GameType)
 	if !ok {
 		return fmt.Errorf("cannot find game type %s", packet.GameType)
@@ -116,9 +103,9 @@ func (p *party) startGame(packet protocol.StartGamePacket) error {
 	if g == nil {
 		return errors.New("cannot create the game")
 	}
-	g.HandleGameStarted()
 
 	p.currentGame = g
+	p.currentGame.HandleGameStarted()
 
 	gameStarted, err := json.Marshal(protocol.GameStartedPacket{
 		PacketName: protocol.GameStartedPacketName,
@@ -129,6 +116,15 @@ func (p *party) startGame(packet protocol.StartGamePacket) error {
 	}
 	p.BroadcastPacket(gameStarted)
 
+	return nil
+}
+
+func (p *party) handleEndGamePacket() error {
+	if p.currentGame == nil {
+		return errors.New("there is no game currently running")
+	}
+
+	p.EndGame()
 	return nil
 }
 
@@ -149,7 +145,7 @@ func (p *party) EndGame() {
 	p.BroadcastPacket(gameEnded)
 }
 
-func (p *party) handlePacket(sender *player, data []byte) error {
+func (p *party) handleGamePacket(sender *player, data []byte) error {
 	if p.currentGame == nil {
 		return errors.New("there is no game running")
 	}
@@ -176,19 +172,19 @@ func (p *party) Name() string {
 	return p.name
 }
 
-func (p *party) Players() []game.Player {
-	players := make([]game.Player, len(p.players))
-	for i, player := range p.players {
-		players[i] = player
+func (p *party) Players() map[int32]game.Player {
+	players := make(map[int32]game.Player, len(p.players))
+	for id, player := range p.players {
+		players[id] = player
 	}
 	return players
 }
 
-type partiesManager []*party
+type parties map[int32]*party
 
-func (p *partiesManager) byId(id int32) *party {
-	for _, party := range *p {
-		if party.id == id {
+func (p parties) byPlayer(target *player) *party {
+	for _, party := range p {
+		if _, ok := party.players[target.id]; ok {
 			return party
 		}
 	}
@@ -196,21 +192,9 @@ func (p *partiesManager) byId(id int32) *party {
 	return nil
 }
 
-func (p *partiesManager) byPlayer(target *player) *party {
-	for _, party := range *p {
-		for _, player := range party.players {
-			if player == target {
-				return party
-			}
-		}
-	}
-
-	return nil
-}
-
-func (p *partiesManager) toListPartiesData() []protocol.PartyData {
-	parties := make([]protocol.PartyData, 0, len(*p))
-	for _, party := range *p {
+func (p parties) toListPartiesData() []protocol.PartyData {
+	parties := make([]protocol.PartyData, 0, len(p))
+	for _, party := range p {
 		if party.currentGame == nil {
 			parties = append(parties, party.toData())
 		}
