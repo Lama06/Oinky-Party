@@ -5,6 +5,7 @@ import (
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/Lama06/Oinky-Party/server/game"
 	"log"
+	"math/rand"
 	"net"
 	"sync"
 )
@@ -21,11 +22,24 @@ type player struct {
 	id             int32
 	send           chan []byte
 	receive        chan []byte
+	disconnected   chan struct{}
 	disconnectOnce sync.Once
 	server         *server
 }
 
 var _ game.Player = (*player)(nil)
+
+func newPlayerForNewConnection(s *server, conn net.Conn) *player {
+	return &player{
+		conn:         conn,
+		name:         randomPlayerNames[rand.Intn(len(randomPlayerNames))],
+		id:           rand.Int31(),
+		send:         make(chan []byte, 100),
+		receive:      make(chan []byte, 100),
+		disconnected: make(chan struct{}, 1),
+		server:       s,
+	}
+}
 
 func (p *player) toData() protocol.PlayerData {
 	return protocol.PlayerData{
@@ -62,16 +76,21 @@ func (p *player) forwardMessagesFromPlayer() {
 func (p *player) forwardMessagesToPlayer() {
 	defer p.disconnect()
 
-	for msgOut := range p.send {
-		msgOutSize := protocol.Int32ToBytes(int32(len(msgOut)))
+	for {
+		select {
+		case msgOut := <-p.send:
+			msgOutSize := protocol.Int32ToBytes(int32(len(msgOut)))
 
-		_, err := p.conn.Write([]byte{msgOutSize[0], msgOutSize[1], msgOutSize[2], msgOutSize[3]})
-		if err != nil {
-			return
-		}
+			_, err := p.conn.Write([]byte{msgOutSize[0], msgOutSize[1], msgOutSize[2], msgOutSize[3]})
+			if err != nil {
+				return
+			}
 
-		_, err = p.conn.Write(msgOut)
-		if err != nil {
+			_, err = p.conn.Write(msgOut)
+			if err != nil {
+				return
+			}
+		case <-p.disconnected:
 			return
 		}
 	}
@@ -85,6 +104,8 @@ func (p *player) disconnect() {
 		if err != nil {
 			log.Println(fmt.Errorf("failed to close the connection to player: %w", err))
 		}
+
+		p.disconnected <- struct{}{}
 
 		p.server.disconnects <- p
 	})

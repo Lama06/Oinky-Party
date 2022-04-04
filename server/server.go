@@ -97,14 +97,7 @@ func (s *server) listenForConnections() {
 }
 
 func (s *server) handleNewConnection(conn net.Conn) {
-	player := &player{
-		conn:    conn,
-		name:    randomPlayerNames[rand.Intn(len(randomPlayerNames))],
-		id:      rand.Int31(),
-		send:    make(chan []byte, 100),
-		receive: make(chan []byte, 100),
-		server:  s,
-	}
+	player := newPlayerForNewConnection(s, conn)
 
 	s.players[player.id] = player
 
