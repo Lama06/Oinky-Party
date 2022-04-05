@@ -65,7 +65,7 @@ func (t *titleScreen) createPartyButton() *ui.Button {
 	})
 }
 
-func (t *titleScreen) joinPartyBtn() *ui.Button {
+func (t *titleScreen) joinPartyButton() *ui.Button {
 	width, height := ebiten.WindowSize()
 
 	return ui.NewButton(ui.NewCenteredPosition(width/2, (height/3)*2+100), "Party beitreten", defaultButtonColors, func() {
@@ -73,8 +73,16 @@ func (t *titleScreen) joinPartyBtn() *ui.Button {
 	})
 }
 
+func (t *titleScreen) changeNameButton() *ui.Button {
+	width, height := ebiten.WindowSize()
+
+	return ui.NewButton(ui.NewCenteredPosition(width/2, (height/3)*2+200), "Namen ändern", defaultButtonColors, func() {
+		t.c.currentScreen = newChangeNameScreen(t.c)
+	})
+}
+
 func (t *titleScreen) content() []ui.Component {
-	return []ui.Component{t.title(), t.createPartyButton(), t.joinPartyBtn()}
+	return []ui.Component{t.title(), t.createPartyButton(), t.joinPartyButton(), t.changeNameButton()}
 }
 
 func (t *titleScreen) Update() {
@@ -92,6 +100,68 @@ func (t *titleScreen) Update() {
 func (t *titleScreen) Draw(screen *ebiten.Image) {
 	screen.Fill(defaultBackgroundColor)
 	for _, component := range t.content() {
+		component.Draw(screen)
+	}
+}
+
+type changeNameScreen struct {
+	c       *client
+	newName []rune
+}
+
+var _ screen = (*changeNameScreen)(nil)
+
+func newChangeNameScreen(c *client) *changeNameScreen {
+	return &changeNameScreen{
+		c:       c,
+		newName: []rune(c.name),
+	}
+}
+
+func (c *changeNameScreen) nameText() *ui.Text {
+	windowWidth, windowHeight := ebiten.WindowSize()
+	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, windowHeight/3), string(c.newName), defaultTitleColors, rescources.RobotoTitleFont)
+}
+
+func (c *changeNameScreen) changeButton() *ui.Button {
+	windowWidth, windowHeight := ebiten.WindowSize()
+	return ui.NewButton(ui.NewCenteredPosition(windowWidth/2, (windowHeight/3)*2), "Namen ändern", defaultButtonColors, func() {
+		changeName, err := json.Marshal(protocol.ChangeNamePacket{
+			PacketName: protocol.ChangeNamePacketName,
+			NewName:    string(c.newName),
+		})
+		if err != nil {
+			panic(err)
+		}
+		c.c.SendPacket(changeName)
+
+		c.c.currentScreen = newTitleScreen(c.c)
+	})
+}
+
+func (c *changeNameScreen) content() []ui.Component {
+	return []ui.Component{c.nameText(), c.changeButton()}
+}
+
+func (c *changeNameScreen) Update() {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+		c.c.currentScreen = newTitleScreen(c.c)
+	}
+
+	c.newName = ebiten.AppendInputChars(c.newName)
+	if len(c.newName) != 0 && inpututil.IsKeyJustPressed(ebiten.KeyBackspace) {
+		c.newName = c.newName[:len(c.newName)-1]
+	}
+
+	for _, component := range c.content() {
+		component.Update()
+	}
+}
+
+func (c *changeNameScreen) Draw(screen *ebiten.Image) {
+	screen.Fill(defaultBackgroundColor)
+
+	for _, component := range c.content() {
 		component.Draw(screen)
 	}
 }

@@ -89,7 +89,7 @@ func (p *player) clientTick(delta float64) {
 	}
 }
 
-func (p *player) draw(client game.Client, screen *ebiten.Image) {
+func (p *player) draw(client game.Client, screen *ebiten.Image, debug bool) {
 	windowWidth, windowHeight := ebiten.WindowSize()
 	img := ebiten.NewImageFromImage(oinkyImage)
 	imgWidth, imgHeight := img.Size()
@@ -114,6 +114,16 @@ func (p *player) draw(client game.Client, screen *ebiten.Image) {
 
 		textX, textY := oinkyX+float64(oinkySize)+50, oinkyY+float64(oinkySize)/2
 		text.Draw(screen, partyPlayer.Name, rescources.RobotoNormalFont, int(textX), int(textY), colornames.Black)
+	}
+
+	if debug && p.id == client.Id() {
+		realWidth, realHeight := shared.OinkySize*float64(windowWidth), shared.OinkySize*float64(windowHeight)
+		debugImg := ebiten.NewImage(int(realWidth), int(realHeight))
+		debugImg.Fill(colornames.Red)
+
+		var drawOptions ebiten.DrawImageOptions
+		drawOptions.GeoM.Translate(oinkyX, oinkyY)
+		screen.DrawImage(debugImg, &drawOptions)
 	}
 }
 
@@ -149,11 +159,12 @@ func (o *obstacle) draw(screen *ebiten.Image) {
 }
 
 type impl struct {
-	client        game.Client
-	lastTickTime  int64 // Die Zeit in Millisekunden, bei der das letzte Mal die Daten vom Server aktualisiert wurden
-	players       map[int32]*player
-	obstacles     []*obstacle
-	obstacleCount int32
+	client           game.Client
+	lastTickTime     int64 // Die Zeit in Millisekunden, bei der das letzte Mal die Daten vom Server aktualisiert wurden
+	players          map[int32]*player
+	obstacles        []*obstacle
+	obstacleCount    int32
+	debugModeEnabled bool
 }
 
 var _ game.Game = (*impl)(nil)
@@ -252,11 +263,11 @@ func (i *impl) Draw(screen *ebiten.Image) {
 			continue
 		}
 
-		player.draw(i.client, screen)
+		player.draw(i.client, screen, i.debugModeEnabled)
 	}
 
 	if i.alive() {
-		i.players[i.client.Id()].draw(i.client, screen)
+		i.players[i.client.Id()].draw(i.client, screen, i.debugModeEnabled)
 	}
 
 	for _, obstacle := range i.obstacles {
@@ -267,6 +278,10 @@ func (i *impl) Draw(screen *ebiten.Image) {
 }
 
 func (i *impl) Update() {
+	if inpututil.IsKeyJustReleased(ebiten.KeyD) {
+		i.debugModeEnabled = !i.debugModeEnabled
+	}
+
 	if (inpututil.IsKeyJustPressed(ebiten.KeySpace) || inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft)) && i.alive() {
 		jump, err := json.Marshal(shared.JumpPacket{
 			PacketName: shared.JumpPacketName,

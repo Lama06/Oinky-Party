@@ -1,5 +1,12 @@
 package protocol
 
+const ChangeNamePacketName = "change-name"
+
+type ChangeNamePacket struct {
+	PacketName string
+	NewName    string
+}
+
 const CreatePartyPacketName = "create-party"
 
 type CreatePartyPacket struct {

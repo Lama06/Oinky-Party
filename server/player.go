@@ -22,7 +22,7 @@ type player struct {
 	id             int32
 	send           chan []byte
 	receive        chan []byte
-	disconnected   chan struct{}
+	disconnected   chan struct{} // um die goroutine forwardMessagesFromPlayer zu schließen, nachdem die Verbindung getrennt wurde
 	disconnectOnce sync.Once
 	server         *server
 }

@@ -133,6 +133,19 @@ func (s *server) handlePacket(sender *player, data []byte) error {
 	}
 
 	switch packetName {
+	case protocol.ChangeNamePacketName:
+		var changeName protocol.ChangeNamePacket
+		err := json.Unmarshal(data, &changeName)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal packet: %w", err)
+		}
+
+		currentParty := s.parties.byPlayer(sender)
+		if currentParty != nil {
+			return errors.New("cannot change name while in party")
+		}
+
+		sender.name = changeName.NewName
 	case protocol.QueryPartiesPacketName:
 		listParties, err := json.Marshal(protocol.ListPartiesPacket{
 			PacketName: protocol.ListPartiesPacketName,
