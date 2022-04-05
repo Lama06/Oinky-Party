@@ -135,6 +135,8 @@ func (c *changeNameScreen) changeButton() *ui.Button {
 		}
 		c.c.SendPacket(changeName)
 
+		c.c.name = string(c.newName)
+
 		c.c.currentScreen = newTitleScreen(c.c)
 	})
 }
