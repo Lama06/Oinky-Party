@@ -1,10 +1,11 @@
 package ui
 
 import (
+	"image/color"
+
 	"github.com/Lama06/Oinky-Party/client/rescources"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
-	"image/color"
 )
 
 const (

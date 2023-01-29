@@ -3,13 +3,15 @@ package client
 import (
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
-	"github.com/Lama06/Oinky-Party/client/game"
-	"github.com/Lama06/Oinky-Party/protocol"
-	"github.com/hajimehoshi/ebiten/v2"
 	"log"
 	"net"
 	"sync"
+
+	"github.com/Lama06/Oinky-Party/client/game"
+	"github.com/Lama06/Oinky-Party/protocol"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func StartClient() {
@@ -48,10 +50,13 @@ func newClient() *client {
 }
 
 func (c *client) start() {
+	serverAddress := flag.String("address", "localhost", "Server Address")
+	flag.Parse()
+
 	log.SetFlags(log.Lshortfile | log.Ltime)
 	log.Println("client starting...")
 
-	err := c.connect()
+	err := c.connect(*serverAddress)
 	if err != nil {
 		log.Println(fmt.Errorf("failed to connect to the server: %w", err))
 		return

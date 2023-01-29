@@ -3,6 +3,7 @@ package rescources
 import (
 	_ "embed"
 	"fmt"
+
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 )

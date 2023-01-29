@@ -5,6 +5,12 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"image"
+	_ "image/png"
+	"math"
+	"strconv"
+	"time"
+
 	"github.com/Lama06/Oinky-Party/client/game"
 	"github.com/Lama06/Oinky-Party/client/rescources"
 	"github.com/Lama06/Oinky-Party/client/ui"
@@ -15,11 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/colornames"
-	"image"
-	_ "image/png"
-	"math"
-	"strconv"
-	"time"
 )
 
 var (

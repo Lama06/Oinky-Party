@@ -6,9 +6,8 @@ import (
 )
 
 const (
-	ServerAddress = "lamaserver.ddns.net"
-	Port          = 3333
-	TickSpeed     = 50
+	Port      = 3333
+	TickSpeed = 50
 )
 
 type NamedPacket struct {

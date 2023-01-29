@@ -2,12 +2,13 @@ package server
 
 import (
 	"fmt"
-	"github.com/Lama06/Oinky-Party/protocol"
-	"github.com/Lama06/Oinky-Party/server/game"
 	"log"
 	"math/rand"
 	"net"
 	"sync"
+
+	"github.com/Lama06/Oinky-Party/protocol"
+	"github.com/Lama06/Oinky-Party/server/game"
 )
 
 var randomPlayerNames = [...]string{

@@ -3,13 +3,14 @@ package client
 import (
 	"errors"
 	"fmt"
-	"github.com/Lama06/Oinky-Party/protocol"
 	"log"
 	"net"
+
+	"github.com/Lama06/Oinky-Party/protocol"
 )
 
-func (c *client) connect() error {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", protocol.ServerAddress, protocol.Port))
+func (c *client) connect(address string) error {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", address, protocol.Port))
 	if err != nil {
 		return fmt.Errorf("failed dial the server: %w", err)
 	}

@@ -1,10 +1,11 @@
 package ui
 
 import (
+	"image/color"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
-	"image/color"
 )
 
 type TextColorPalette struct {

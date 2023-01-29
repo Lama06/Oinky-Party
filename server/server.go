@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Lama06/Oinky-Party/protocol"
 	"log"
 	"math/rand"
 	"net"
 	"time"
+
+	"github.com/Lama06/Oinky-Party/protocol"
 )
 
 func StartServer() {
