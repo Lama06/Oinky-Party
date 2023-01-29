@@ -13,20 +13,20 @@ type TextColorPalette struct {
 }
 
 type Text struct {
-	pos  Position
-	text string
+	pos   Position
+	text  string
 	color TextColorPalette
-	font font.Face
+	font  font.Face
 }
 
 var _ Component = (*Text)(nil)
 
 func NewText(pos Position, text string, color TextColorPalette, font font.Face) *Text {
 	return &Text{
-		pos:  pos,
-		text: text,
+		pos:   pos,
+		text:  text,
 		color: color,
-		font: font,
+		font:  font,
 	}
 }
 

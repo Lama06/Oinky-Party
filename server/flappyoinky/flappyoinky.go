@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
+
 	shared "github.com/Lama06/Oinky-Party/flappyoinky"
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/Lama06/Oinky-Party/server/game"
-	"math/rand"
 )
 
 type player struct {
