@@ -6,28 +6,14 @@ import (
 	"github.com/Lama06/Oinky-Party/server/game"
 )
 
-var gameTypes = []gameType{
-	{
-		name:    "flappyoinky",
-		creator: flappyoinky.Create,
-	},
-	{
-		name:    "connect4",
-		creator: connect4.Create,
-	},
-}
+var gameTypes = []game.Type{flappyoinky.Type, connect4.Type}
 
-func gameTypeByName(name string) (t gameType, ok bool) {
+func gameTypeByName(name string) (t game.Type, ok bool) {
 	for _, t := range gameTypes {
-		if t.name == name {
+		if t.Name == name {
 			return t, true
 		}
 	}
 
-	return gameType{}, false
-}
-
-type gameType struct {
-	name    string
-	creator game.Creator
+	return game.Type{}, false
 }

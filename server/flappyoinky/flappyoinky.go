@@ -96,7 +96,7 @@ type impl struct {
 
 var _ game.Game = (*impl)(nil)
 
-func Create(party game.Party) game.Game {
+func create(party game.Party) game.Game {
 	return &impl{
 		party:                  party,
 		alivePlayers:           make(map[int32]*player, len(party.Players())),
@@ -105,7 +105,7 @@ func Create(party game.Party) game.Game {
 	}
 }
 
-var _ game.Creator = Create
+var _ game.Creator = create
 
 func (i *impl) HandleGameStarted() {
 	for _, partyPlayer := range i.party.Players() {
@@ -244,4 +244,9 @@ func (i *impl) filterObstacles() {
 		}
 	}
 	i.obstacles = obstacles
+}
+
+var Type = game.Type{
+	Creator: create,
+	Name:    shared.Name,
 }

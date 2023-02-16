@@ -504,7 +504,7 @@ func (s *startGameScreen) gameButtons() []*ui.Button {
 		callback := func() {
 			startGame, err := json.Marshal(protocol.StartGamePacket{
 				PacketName: protocol.StartGamePacketName,
-				GameType:   gameTypeCopy.name,
+				GameType:   gameTypeCopy.Name,
 			})
 			if err != nil {
 				panic(err)
@@ -512,7 +512,7 @@ func (s *startGameScreen) gameButtons() []*ui.Button {
 			s.c.SendPacket(startGame)
 		}
 
-		buttons = append(buttons, ui.NewButton(pos, gameType.displayName, defaultButtonColors, callback))
+		buttons = append(buttons, ui.NewButton(pos, gameType.DisplayName, defaultButtonColors, callback))
 	}
 
 	return buttons

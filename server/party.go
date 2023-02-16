@@ -100,7 +100,7 @@ func (p *party) handleStartGamePacket(packet protocol.StartGamePacket) error {
 		return errors.New("a game is already running")
 	}
 
-	g := t.creator(p)
+	g := t.Creator(p)
 	if g == nil {
 		return errors.New("cannot create the game")
 	}
@@ -110,7 +110,7 @@ func (p *party) handleStartGamePacket(packet protocol.StartGamePacket) error {
 
 	gameStarted, err := json.Marshal(protocol.GameStartedPacket{
 		PacketName: protocol.GameStartedPacketName,
-		GameType:   t.name,
+		GameType:   t.Name,
 	})
 	if err != nil {
 		panic(err)

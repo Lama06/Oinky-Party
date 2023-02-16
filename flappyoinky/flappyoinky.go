@@ -11,6 +11,8 @@ package flappyoinky
 // Wenn ein Spieler gestorben ist, erkennt der Client das daran, dass dieser Spieler nicht mehr im UpdatePacket zu finden ist.
 
 const (
+	Name = "flappyoinky"
+
 	OinkySize                  = 0.06              // Die Höhe und Breite des Vogels
 	OinkyPosX                  = 0.5 - OinkySize/2 // Die permanente X Position der oberen linken Ecke des Vogels
 	OinkyStartPosY             = 0.5 - OinkySize/2 // Die Y Position der oberen linken Ecke der Vögel, bei der sie sich am Anfang des Spieles befinden

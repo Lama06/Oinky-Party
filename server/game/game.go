@@ -1,5 +1,10 @@
 package game
 
+type Type struct {
+	Creator Creator
+	Name    string
+}
+
 type Creator func(party Party) Game
 
 type Player interface {

@@ -170,13 +170,13 @@ type impl struct {
 
 var _ game.Game = (*impl)(nil)
 
-func Create(client game.Client) game.Game {
+func create(client game.Client) game.Game {
 	return &impl{
 		client: client,
 	}
 }
 
-var _ game.Creator = Create
+var _ game.Creator = create
 
 func (i *impl) HandleGameStarted() {
 	i.lastTickTime = time.Now().UnixMilli()
@@ -198,8 +198,6 @@ func (i *impl) HandleGameStarted() {
 }
 
 func (i *impl) HandleGameEnded() {}
-
-func (i *impl) HandlePlayerLeft() {}
 
 func (i *impl) HandlePacket(packet []byte) error {
 	packetName, err := protocol.GetPacketName(packet)
@@ -319,4 +317,10 @@ func (i *impl) delta() float64 {
 	currentTime := time.Now().UnixMilli()
 	deltaTime := float64(currentTime-i.lastTickTime) / protocol.TickSpeed
 	return deltaTime
+}
+
+var Type = game.Type{
+	Creator:     create,
+	Name:        shared.Name,
+	DisplayName: "Flappy Oinky",
 }

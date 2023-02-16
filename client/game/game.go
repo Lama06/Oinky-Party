@@ -2,6 +2,12 @@ package game
 
 import "github.com/hajimehoshi/ebiten/v2"
 
+type Type struct {
+	Creator     Creator
+	Name        string
+	DisplayName string
+}
+
 type Creator func(client Client) Game
 
 type PartyPlayer struct {
@@ -27,8 +33,6 @@ type Game interface {
 	HandleGameStarted()
 
 	HandleGameEnded()
-
-	HandlePlayerLeft()
 
 	HandlePacket(packet []byte) error
 

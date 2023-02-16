@@ -1,5 +1,7 @@
 package connect4
 
+const Name = "connect4"
+
 const (
 	BoardWidth  = 7
 	BoardHeight = 6

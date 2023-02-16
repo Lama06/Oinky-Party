@@ -37,7 +37,7 @@ func getWinner(cells []shared.Cell) (winner shared.Color, found bool) {
 	return shared.RedColor, false
 }
 
-func (b board) getWinnerInRow(y int) (winner shared.Color, found bool) {
+func (b *board) getWinnerInRow(y int) (winner shared.Color, found bool) {
 	cells := make([]shared.Cell, shared.BoardWidth)
 	for x := 0; x < shared.BoardWidth; x++ {
 		cells[x] = b[x][y]
@@ -45,7 +45,7 @@ func (b board) getWinnerInRow(y int) (winner shared.Color, found bool) {
 	return getWinner(cells)
 }
 
-func (b board) getWinnerInColumn(x int) (winner shared.Color, found bool) {
+func (b *board) getWinnerInColumn(x int) (winner shared.Color, found bool) {
 	cells := make([]shared.Cell, shared.BoardHeight)
 	for y := 0; y < shared.BoardHeight; y++ {
 		cells[y] = b[x][y]
@@ -53,7 +53,7 @@ func (b board) getWinnerInColumn(x int) (winner shared.Color, found bool) {
 	return getWinner(cells)
 }
 
-func (b board) getWinner() (winner shared.Color, found bool) {
+func (b *board) getWinner() (winner shared.Color, found bool) {
 	for y := 0; y < shared.BoardHeight; y++ {
 		if winner, found := b.getWinnerInRow(y); found {
 			return winner, true
@@ -69,7 +69,7 @@ func (b board) getWinner() (winner shared.Color, found bool) {
 	return shared.RedColor, false
 }
 
-func (b board) canPlace(x int) bool {
+func (b *board) canPlace(x int) bool {
 	return b[x][0] == shared.EmptyCell
 }
 
@@ -86,7 +86,7 @@ func (b *board) place(color shared.Color, x int) {
 
 type impl struct {
 	party         game.Party
-	board         board
+	board         *board
 	red           game.Player
 	yellow        game.Player
 	currentPlayer shared.Color
@@ -94,7 +94,7 @@ type impl struct {
 
 var _ game.Game = &impl{}
 
-func Create(party game.Party) game.Game {
+func create(party game.Party) game.Game {
 	var players []game.Player
 	for _, player := range party.Players() {
 		players = append(players, player)
@@ -105,13 +105,14 @@ func Create(party game.Party) game.Game {
 
 	return &impl{
 		party:         party,
+		board:         &board{},
 		red:           players[0],
 		yellow:        players[1],
 		currentPlayer: shared.RedColor,
 	}
 }
 
-var _ game.Creator = Create
+var _ game.Creator = create
 
 func (i *impl) getColor(player game.Player) shared.Color {
 	switch player {
@@ -145,6 +146,9 @@ func (i *impl) HandlePacket(sender game.Player, data []byte) error {
 			return fmt.Errorf("failed to unmarshal json: %w", err)
 		}
 
+		if playerPlaced.X < 0 || playerPlaced.X > shared.BoardWidth-1 {
+			return fmt.Errorf("invalid column: %d", playerPlaced.X)
+		}
 		if i.getColor(sender) != i.currentPlayer {
 			return errors.New("its not this players turn")
 		}
@@ -176,3 +180,8 @@ func (i *impl) HandlePacket(sender game.Player, data []byte) error {
 }
 
 func (i *impl) Tick() {}
+
+var Type = game.Type{
+	Creator: create,
+	Name:    shared.Name,
+}

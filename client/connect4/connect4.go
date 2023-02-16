@@ -32,24 +32,23 @@ func (b *board) place(color shared.Color, x int) {
 
 type impl struct {
 	client game.Client
-	board  board
+	board  *board
 }
 
 var _ game.Game = &impl{}
 
-func Create(client game.Client) game.Game {
+func create(client game.Client) game.Game {
 	return &impl{
 		client: client,
+		board:  &board{},
 	}
 }
 
-var _ game.Creator = Create
+var _ game.Creator = create
 
 func (i *impl) HandleGameStarted() {}
 
 func (i *impl) HandleGameEnded() {}
-
-func (i *impl) HandlePlayerLeft() {}
 
 func (i *impl) HandlePacket(data []byte) error {
 	packetName, err := protocol.GetPacketName(data)
@@ -93,6 +92,9 @@ func (i *impl) Update() {
 	if inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft) {
 		mouseX, _ := ebiten.CursorPosition()
 		x := mouseX / cellSize
+		if x < 0 || x > shared.BoardWidth-1 {
+			return
+		}
 
 		place, err := json.Marshal(shared.PlacePacket{
 			PacketName: shared.PlacePacketName,
@@ -107,4 +109,10 @@ func (i *impl) Update() {
 
 func (i *impl) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return shared.BoardWidth * cellSize, shared.BoardHeight * cellSize
+}
+
+var Type = game.Type{
+	Creator:     create,
+	Name:        shared.Name,
+	DisplayName: "Vier Gewinnt",
 }

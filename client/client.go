@@ -180,7 +180,7 @@ func (c *client) handlePacket(packet []byte) error {
 			return fmt.Errorf("unknown game type: %s", gameStarted.GameType)
 		}
 
-		newGame := gameType.creator(c)
+		newGame := gameType.Creator(c)
 		newGame.HandleGameStarted()
 		c.currentGame = newGame
 		c.currentScreen = newGameScreen(c)
