@@ -63,8 +63,7 @@ func (c *client) start() {
 	}
 
 	ebiten.SetWindowTitle("Oinky Party")
-	ebiten.SetWindowResizable(true)
-	ebiten.MaximizeWindow()
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	c.currentScreen = newTitleScreen(c)
 
@@ -266,5 +265,8 @@ func (c *client) Draw(screen *ebiten.Image) {
 }
 
 func (c *client) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	if c.currentGame != nil {
+		return c.currentGame.Layout(outsideWidth, outsideHeight)
+	}
 	return outsideWidth, outsideHeight
 }

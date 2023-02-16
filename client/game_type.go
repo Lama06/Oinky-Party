@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/Lama06/Oinky-Party/client/connect4"
 	"github.com/Lama06/Oinky-Party/client/flappyoinky"
 	"github.com/Lama06/Oinky-Party/client/game"
 )
@@ -16,6 +17,11 @@ var gameTypes = []gameType{
 		name:        "flappyoinky",
 		displayName: "Flappy Oinky",
 		creator:     flappyoinky.Create,
+	},
+	{
+		name:        "connect4",
+		displayName: "Connect 4",
+		creator:     connect4.Create,
 	},
 }
 

@@ -35,4 +35,6 @@ type Game interface {
 	Draw(screen *ebiten.Image)
 
 	Update()
+
+	Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int)
 }

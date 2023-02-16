@@ -306,6 +306,10 @@ func (i *impl) Update() {
 	i.obstacleCounter().Update()
 }
 
+func (i *impl) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	return outsideWidth, outsideHeight
+}
+
 func (i *impl) alive() bool {
 	_, ok := i.players[i.client.Id()]
 	return ok

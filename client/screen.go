@@ -3,12 +3,13 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"image/color"
+
 	"github.com/Lama06/Oinky-Party/client/rescources"
 	"github.com/Lama06/Oinky-Party/client/ui"
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"image/color"
 )
 
 var (
@@ -498,10 +499,12 @@ func (s *startGameScreen) gameButtons() []*ui.Button {
 	for i, gameType := range gameTypes {
 		pos := ui.NewCenteredPosition(windowWidth/2, 100+windowHeight/3+100*i)
 
+		gameTypeCopy := gameType
+
 		callback := func() {
 			startGame, err := json.Marshal(protocol.StartGamePacket{
 				PacketName: protocol.StartGamePacketName,
-				GameType:   gameType.name,
+				GameType:   gameTypeCopy.name,
 			})
 			if err != nil {
 				panic(err)
