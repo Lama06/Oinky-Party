@@ -417,7 +417,7 @@ func (p *partyScreen) playerList() []*ui.Text {
 
 	playerList := make([]*ui.Text, 0)
 	i := 0
-	for _, player := range p.c.partyPlayers {
+	for _, player := range p.c.partyPlayersSorted() {
 		playerList = append(playerList, ui.NewText(ui.NewCenteredPosition(
 			windowWidth/2,
 			100+windowHeight/3+100*i,

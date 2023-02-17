@@ -27,6 +27,10 @@ var (
 	//go:embed oinky.png
 	oinkyImageData []byte
 	oinkyImage     = loadImage(oinkyImageData)
+
+	//go:embed obstacle.png
+	obstacleTileImageData []byte
+	obstacleTileImage     = loadImage(obstacleTileImageData)
 )
 
 func loadImage(data []byte) image.Image {
@@ -105,14 +109,7 @@ func (p *player) draw(client game.Client, screen *ebiten.Image, debug bool) {
 	screen.DrawImage(img, &drawOptions)
 
 	if p.id != client.Id() {
-		var partyPlayer game.PartyPlayer
-		for _, player := range client.PartyPlayers() {
-			if player.Id == p.id {
-				partyPlayer = player
-				break
-			}
-		}
-
+		partyPlayer := client.PartyPlayers()[p.id]
 		textX, textY := oinkyX+float64(oinkySize)+50, oinkyY+float64(oinkySize)/2
 		text.Draw(screen, partyPlayer.Name, rescources.RobotoNormalFont, int(textX), int(textY), colornames.Black)
 	}
@@ -139,12 +136,27 @@ func (o *obstacle) clientTick(delta float64) {
 	o.clientPosX = o.serverPosX + shared.ObstacleSpeed*delta
 }
 
+func addObstacleTexture(obstacleImage *ebiten.Image) {
+	obstacleImageWidth, obstacleImageHeight := obstacleImage.Size()
+	obstacleTileImageEbiten := ebiten.NewImageFromImage(obstacleTileImage)
+	obstacleTileImageWidth, obstacleTileImageHeight := obstacleTileImageEbiten.Size()
+	obstacleTileImageScaleFactor := float64(obstacleImageWidth) / float64(obstacleTileImageWidth)
+	obstacleTileImageScaledHeight := float64(obstacleTileImageHeight) * obstacleTileImageScaleFactor
+
+	for y := 0.0; y < float64(obstacleImageHeight); y += obstacleTileImageScaledHeight {
+		var drawOptions ebiten.DrawImageOptions
+		drawOptions.GeoM.Scale(obstacleTileImageScaleFactor, obstacleTileImageScaleFactor)
+		drawOptions.GeoM.Translate(0, y)
+		obstacleImage.DrawImage(obstacleTileImageEbiten, &drawOptions)
+	}
+}
+
 func (o *obstacle) draw(screen *ebiten.Image) {
 	windowWidth, windowHeight := ebiten.WindowSize()
 	width := int(shared.ObstacleWidth * float64(windowWidth))
 
 	upper := ebiten.NewImage(width, int(o.freeSpaceUpperY*float64(windowHeight)))
-	upper.Fill(colornames.Black)
+	addObstacleTexture(upper)
 	var upperDrawOptions ebiten.DrawImageOptions
 	upperDrawOptions.GeoM.Translate(o.clientPosX*float64(windowWidth), 0)
 	screen.DrawImage(upper, &upperDrawOptions)
@@ -152,7 +164,7 @@ func (o *obstacle) draw(screen *ebiten.Image) {
 	lowerHeight := int((1 - o.freeSpaceLowerY) * float64(windowHeight))
 	if lowerHeight > 0 { // Wenn lowerHeight 0 ist erzeugt der Aufruf von NewImage einen panic
 		lower := ebiten.NewImage(width, lowerHeight)
-		lower.Fill(colornames.Black)
+		addObstacleTexture(lower)
 		var lowerDrawOptions ebiten.DrawImageOptions
 		lowerDrawOptions.GeoM.Translate(o.clientPosX*float64(windowWidth), float64(windowHeight)-float64(lowerHeight))
 		screen.DrawImage(lower, &lowerDrawOptions)

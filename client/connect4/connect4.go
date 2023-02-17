@@ -35,7 +35,7 @@ type impl struct {
 	board  *board
 }
 
-var _ game.Game = &impl{}
+var _ game.Game = (*impl)(nil)
 
 func create(client game.Client) game.Game {
 	return &impl{

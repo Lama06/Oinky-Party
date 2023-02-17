@@ -92,7 +92,7 @@ type impl struct {
 	currentPlayer shared.Color
 }
 
-var _ game.Game = &impl{}
+var _ game.Game = (*impl)(nil)
 
 func create(party game.Party) game.Game {
 	var players []game.Player

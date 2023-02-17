@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sort"
 	"sync"
 
 	"github.com/Lama06/Oinky-Party/client/game"
@@ -236,6 +237,20 @@ func (c *client) PartyPlayers() map[int32]game.PartyPlayer {
 		partyPlayers[id] = player
 	}
 	return partyPlayers
+}
+
+func (c *client) partyPlayersSorted() []game.PartyPlayer {
+	ids := make([]int32, 0, len(c.partyPlayers))
+	for id := range c.partyPlayers {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+
+	result := make([]game.PartyPlayer, len(ids))
+	for i, id := range ids {
+		result[i] = c.partyPlayers[id]
+	}
+	return result
 }
 
 func (c *client) Update() error {
