@@ -41,7 +41,7 @@ func loadImage(data []byte) image.Image {
 	return img
 }
 
-// Die Größe des Vogels wird anhand der Größe des Fensters zu einem Quadrat ergänzt.
+// Die Größe des Oinkys wird anhand der Größe des Fensters zu einem Quadrat ergänzt.
 func getVisualOinkySize() int {
 	windowWidth, windowHeight := ebiten.WindowSize()
 	if windowWidth >= windowHeight {
@@ -67,7 +67,7 @@ func (p *player) clientTick(delta float64) {
 
 	skippedTicks := int(math.Trunc(delta))
 	for i := 1; i <= skippedTicks; i++ {
-		speedY += shared.OinkySpeedYIncreasePerTick
+		speedY += shared.OinkyAccelerationY
 		posY += speedY
 	}
 	remainingDelta := delta - float64(skippedTicks)
@@ -155,14 +155,17 @@ func (o *obstacle) draw(screen *ebiten.Image) {
 	windowWidth, windowHeight := ebiten.WindowSize()
 	width := int(shared.ObstacleWidth * float64(windowWidth))
 
-	upper := ebiten.NewImage(width, int(o.freeSpaceUpperY*float64(windowHeight)))
-	addObstacleTexture(upper)
-	var upperDrawOptions ebiten.DrawImageOptions
-	upperDrawOptions.GeoM.Translate(o.clientPosX*float64(windowWidth), 0)
-	screen.DrawImage(upper, &upperDrawOptions)
+	upperHeight := int(o.freeSpaceUpperY * float64(windowHeight))
+	if upperHeight > 0 {
+		upper := ebiten.NewImage(width, upperHeight)
+		addObstacleTexture(upper)
+		var upperDrawOptions ebiten.DrawImageOptions
+		upperDrawOptions.GeoM.Translate(o.clientPosX*float64(windowWidth), 0)
+		screen.DrawImage(upper, &upperDrawOptions)
+	}
 
 	lowerHeight := int((1 - o.freeSpaceLowerY) * float64(windowHeight))
-	if lowerHeight > 0 { // Wenn lowerHeight 0 ist erzeugt der Aufruf von NewImage einen panic
+	if lowerHeight > 0 {
 		lower := ebiten.NewImage(width, lowerHeight)
 		addObstacleTexture(lower)
 		var lowerDrawOptions ebiten.DrawImageOptions
@@ -184,20 +187,19 @@ var _ game.Game = (*impl)(nil)
 
 func create(client game.Client) game.Game {
 	return &impl{
-		client: client,
+		client:       client,
+		lastTickTime: time.Now().UnixMilli(),
 	}
 }
 
 var _ game.Creator = create
 
 func (i *impl) HandleGameStarted() {
-	i.lastTickTime = time.Now().UnixMilli()
-
 	partyPlayers := i.client.PartyPlayers()
 	i.players = make(map[int32]*player, len(partyPlayers))
-	for id, partyPlayer := range partyPlayers {
+	for id := range partyPlayers {
 		i.players[id] = &player{
-			id:           partyPlayer.Id,
+			id:           id,
 			serverPosY:   shared.OinkyStartPosY,
 			clientPosY:   shared.OinkyStartPosY,
 			serverSpeedY: 0,
@@ -205,8 +207,6 @@ func (i *impl) HandleGameStarted() {
 			rotation:     0,
 		}
 	}
-
-	i.obstacles = nil
 }
 
 func (i *impl) HandleGameEnded() {}
@@ -253,9 +253,11 @@ func (i *impl) HandlePacket(packet []byte) error {
 		i.obstacleCount = update.ObstacleCount
 
 		i.lastTickTime = time.Now().UnixMilli()
-	}
 
-	return nil
+		return nil
+	default:
+		return fmt.Errorf("unknown packet name: %s", packetName)
+	}
 }
 
 func (i *impl) obstacleCounter() *ui.Text {

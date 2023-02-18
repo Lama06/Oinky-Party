@@ -12,8 +12,8 @@ import (
 )
 
 type player struct {
-	id        int32   // Die ID des Spielers, zu dem dieser Vogel gehört
-	positionY float64 // Die Y Position der oberen linken Ecke des Vogels
+	id        int32
+	positionY float64 // Die Y Position der oberen linken Ecke des Oinkys
 	speedY    float64 // Die Geschwindigkeit, mit der positionY pro Tick erhöht wird
 }
 
@@ -42,7 +42,7 @@ func (p *player) isTouchingObstacle(obstacles []*obstacle) bool {
 }
 
 func (p *player) tick() {
-	p.speedY += shared.OinkySpeedYIncreasePerTick
+	p.speedY += shared.OinkyAccelerationY
 	p.positionY += p.speedY
 }
 
@@ -59,14 +59,17 @@ func (p *player) toUpdateData() shared.PlayerUpdateData {
 }
 
 func randomObstacleFreeSpace() (lowerY, upperY float64) {
-	freeSpaceLowerY := 1 - float64(rand.Intn(10-shared.ObstacleFreeSpaceHeight*10))*0.1
-	freeSpaceUpperY := freeSpaceLowerY - shared.ObstacleFreeSpaceHeight
-	return freeSpaceLowerY, freeSpaceUpperY
+	lowerY = rand.Float64()
+	if lowerY-shared.ObstacleFreeSpaceHeight < 0 {
+		lowerY = 1 - shared.ObstacleFreeSpaceHeight
+	}
+	upperY = lowerY - shared.ObstacleFreeSpaceHeight
+	return
 }
 
 type obstacle struct {
-	freeSpaceLowerY float64 // Die Y Koordinate, die die untere Begrenzung des freien Platzes angibt
-	freeSpaceUpperY float64 // Die Y Koordinate, die die obere Begrenzung des freien Platzes angibt
+	freeSpaceLowerY float64 // Die Y Koordinate der oberen Kante des unteren Teils des Hindernisses
+	freeSpaceUpperY float64 // Die Y Koordinate der unteren Kante des oberen Teils des Hindernisses
 	posX            float64 // Die X Position der linken Kante des Hindernisses
 }
 
@@ -100,7 +103,6 @@ func create(party game.Party) game.Game {
 	return &impl{
 		party:                  party,
 		alivePlayers:           make(map[int32]*player, len(party.Players())),
-		obstacles:              make([]*obstacle, 0),
 		ticksUntilNextObstacle: shared.ObstacleSpawnRate,
 	}
 }
@@ -108,9 +110,9 @@ func create(party game.Party) game.Game {
 var _ game.Creator = create
 
 func (i *impl) HandleGameStarted() {
-	for _, partyPlayer := range i.party.Players() {
-		i.alivePlayers[partyPlayer.Id()] = &player{
-			id:        partyPlayer.Id(),
+	for id := range i.party.Players() {
+		i.alivePlayers[id] = &player{
+			id:        id,
 			positionY: shared.OinkyStartPosY,
 			speedY:    0,
 		}
@@ -135,20 +137,22 @@ func (i *impl) HandlePacket(sender game.Player, data []byte) error {
 
 	switch packetName {
 	case shared.JumpPacketName:
-		data, ok := i.alivePlayers[sender.Id()]
+		player, ok := i.alivePlayers[sender.Id()]
 		if !ok {
 			return errors.New("invalid player id")
 		}
 
-		data.jump()
-	}
+		player.jump()
 
-	return nil
+		return nil
+	default:
+		return fmt.Errorf("unknown packet name: %s", packetName)
+	}
 }
 
 func (i *impl) Tick() {
-	gameEnded := i.tickPlayers()
-	if gameEnded {
+	if gameEnded := i.tickPlayers(); gameEnded {
+		i.party.EndGame()
 		return
 	}
 	i.tickObstacles()
@@ -180,13 +184,10 @@ func (i *impl) broadcastUpdatePacket() {
 
 func (i *impl) tickPlayers() (gameEnded bool) {
 	for id, player := range i.alivePlayers {
-		partyPlayer := i.party.Players()[id]
-
 		player.tick()
 
 		if player.isOutsideWorld() || player.isTouchingObstacle(i.obstacles) {
-			gameEnded := i.killPlayer(partyPlayer)
-			if gameEnded {
+			if gameEnded := i.killPlayer(id); gameEnded {
 				return true
 			}
 		}
@@ -195,27 +196,21 @@ func (i *impl) tickPlayers() (gameEnded bool) {
 	return false
 }
 
-func (i *impl) killPlayer(player game.Player) (gameEnded bool) {
-	delete(i.alivePlayers, player.Id())
-
-	if len(i.alivePlayers) == 0 {
-		i.party.EndGame()
-		return true
-	}
-
-	return false
+func (i *impl) killPlayer(id int32) (gameEnded bool) {
+	delete(i.alivePlayers, id)
+	return len(i.alivePlayers) == 0
 }
 
 func (i *impl) tickObstacles() {
 	i.ticksUntilNextObstacle--
 
-	if i.ticksUntilNextObstacle == 0 {
+	if i.ticksUntilNextObstacle <= 0 {
 		i.ticksUntilNextObstacle = shared.ObstacleSpawnRate
 
 		i.spawnNewObstacle()
 	}
 
-	i.filterObstacles()
+	i.removeObstaclesOutsideWorld()
 
 	for _, obstacle := range i.obstacles {
 		obstacle.tick()
@@ -236,7 +231,7 @@ func (i *impl) spawnNewObstacle() {
 	i.obstacles = append(i.obstacles, newObstacle)
 }
 
-func (i *impl) filterObstacles() {
+func (i *impl) removeObstaclesOutsideWorld() {
 	obstacles := make([]*obstacle, 0, len(i.obstacles))
 	for _, o := range i.obstacles {
 		if !o.isOutsideWorld() {
