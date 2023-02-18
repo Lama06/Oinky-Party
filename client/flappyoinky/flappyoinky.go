@@ -230,14 +230,14 @@ func (i *impl) HandlePacket(packet []byte) error {
 			oldRotations[id] = player.rotation
 		}
 		i.players = make(map[int32]*player, len(update.Players))
-		for _, playerData := range update.Players {
-			i.players[playerData.Player] = &player{
-				id:           playerData.Player,
-				serverPosY:   playerData.PositionY,
-				clientPosY:   playerData.PositionY,
-				serverSpeedY: playerData.SpeedY,
-				clientSpeedY: playerData.SpeedY,
-				rotation:     oldRotations[playerData.Player],
+		for _, playerUpdateData := range update.Players {
+			i.players[playerUpdateData.Player] = &player{
+				id:           playerUpdateData.Player,
+				serverPosY:   playerUpdateData.PositionY,
+				clientPosY:   playerUpdateData.PositionY,
+				serverSpeedY: playerUpdateData.SpeedY,
+				clientSpeedY: playerUpdateData.SpeedY,
+				rotation:     oldRotations[playerUpdateData.Player],
 			}
 		}
 
