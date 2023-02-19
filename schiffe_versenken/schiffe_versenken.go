@@ -70,7 +70,7 @@ func areIntsContiguous(ints []int) bool {
 	return true
 }
 
-func (s Ship) Valid() bool {
+func (s Ship) valid() bool {
 	for _, pos := range s {
 		if !pos.Valid() {
 			return false
@@ -114,6 +114,12 @@ func (s Ships) countShipsWithLength(length int) (result int) {
 }
 
 func (s Ships) Valid() bool {
+	for _, ship := range s {
+		if !ship.valid() {
+			return false
+		}
+	}
+
 	totalShipCountShould := 0
 	for _, count := range NumberOfShips {
 		totalShipCountShould += count
