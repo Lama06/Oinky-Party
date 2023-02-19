@@ -3,31 +3,12 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"image/color"
 
 	"github.com/Lama06/Oinky-Party/client/rescources"
 	"github.com/Lama06/Oinky-Party/client/ui"
 	"github.com/Lama06/Oinky-Party/protocol"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-)
-
-var (
-	defaultBackgroundColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	defaultButtonColors    = ui.ButtonColorPalette{
-		BackgroundColor:      color.RGBA{R: 18, G: 53, B: 91, A: 255},
-		BackgroundHoverColor: color.RGBA{R: 134, G: 22, B: 87, A: 255},
-		TextColor:            color.RGBA{R: 212, G: 245, B: 245, A: 255},
-		TextHoverColor:       color.RGBA{R: 212, G: 245, B: 245, A: 255},
-	}
-	defaultTextColors = ui.TextColorPalette{
-		Color:      color.RGBA{R: 87, G: 70, B: 123, A: 255},
-		HoverColor: color.RGBA{R: 82, G: 73, B: 72, A: 255},
-	}
-	defaultTitleColors = ui.TextColorPalette{
-		Color:      color.RGBA{R: 87, G: 70, B: 123, A: 255},
-		HoverColor: color.RGBA{R: 112, G: 248, B: 186, A: 255},
-	}
 )
 
 type screen interface {
@@ -55,13 +36,13 @@ func newTitleScreen(c *client) *titleScreen {
 func (t *titleScreen) title() *ui.Text {
 	width, height := ebiten.WindowSize()
 
-	return ui.NewText(ui.NewCenteredPosition(width/2, height/3), "Oinky Party", defaultTitleColors, rescources.RobotoTitleFont)
+	return ui.NewText(ui.NewCenteredPosition(width/2, height/3), "Oinky Party", ui.DefaultTitleColors, rescources.RobotoTitleFont)
 }
 
 func (t *titleScreen) createPartyButton() *ui.Button {
 	width, height := ebiten.WindowSize()
 
-	return ui.NewButton(ui.NewCenteredPosition(width/2, (height/3)*2), "Party erstellen", defaultButtonColors, func() {
+	return ui.NewButton(ui.NewCenteredPosition(width/2, (height/3)*2), "Party erstellen", ui.DefaultButtonColors, func() {
 		t.c.currentScreen = newCreatePartyScreen(t.c)
 	})
 }
@@ -69,7 +50,7 @@ func (t *titleScreen) createPartyButton() *ui.Button {
 func (t *titleScreen) joinPartyButton() *ui.Button {
 	width, height := ebiten.WindowSize()
 
-	return ui.NewButton(ui.NewCenteredPosition(width/2, (height/3)*2+100), "Party beitreten", defaultButtonColors, func() {
+	return ui.NewButton(ui.NewCenteredPosition(width/2, (height/3)*2+100), "Party beitreten", ui.DefaultButtonColors, func() {
 		t.c.currentScreen = newJoinPartyScreen(t.c)
 	})
 }
@@ -77,7 +58,7 @@ func (t *titleScreen) joinPartyButton() *ui.Button {
 func (t *titleScreen) changeNameButton() *ui.Button {
 	width, height := ebiten.WindowSize()
 
-	return ui.NewButton(ui.NewCenteredPosition(width/2, (height/3)*2+200), "Namen ändern", defaultButtonColors, func() {
+	return ui.NewButton(ui.NewCenteredPosition(width/2, (height/3)*2+200), "Namen ändern", ui.DefaultButtonColors, func() {
 		t.c.currentScreen = newChangeNameScreen(t.c)
 	})
 }
@@ -99,7 +80,7 @@ func (t *titleScreen) Update() {
 }
 
 func (t *titleScreen) Draw(screen *ebiten.Image) {
-	screen.Fill(defaultBackgroundColor)
+	screen.Fill(ui.DefaultBackgroundColor)
 	for _, component := range t.content() {
 		component.Draw(screen)
 	}
@@ -121,12 +102,12 @@ func newChangeNameScreen(c *client) *changeNameScreen {
 
 func (c *changeNameScreen) nameText() *ui.Text {
 	windowWidth, windowHeight := ebiten.WindowSize()
-	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, windowHeight/3), string(c.newName), defaultTitleColors, rescources.RobotoTitleFont)
+	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, windowHeight/3), string(c.newName), ui.DefaultTitleColors, rescources.RobotoTitleFont)
 }
 
 func (c *changeNameScreen) changeButton() *ui.Button {
 	windowWidth, windowHeight := ebiten.WindowSize()
-	return ui.NewButton(ui.NewCenteredPosition(windowWidth/2, (windowHeight/3)*2), "Namen ändern", defaultButtonColors, func() {
+	return ui.NewButton(ui.NewCenteredPosition(windowWidth/2, (windowHeight/3)*2), "Namen ändern", ui.DefaultButtonColors, func() {
 		changeName, err := json.Marshal(protocol.ChangeNamePacket{
 			PacketName: protocol.ChangeNamePacketName,
 			NewName:    string(c.newName),
@@ -162,7 +143,7 @@ func (c *changeNameScreen) Update() {
 }
 
 func (c *changeNameScreen) Draw(screen *ebiten.Image) {
-	screen.Fill(defaultBackgroundColor)
+	screen.Fill(ui.DefaultBackgroundColor)
 
 	for _, component := range c.content() {
 		component.Draw(screen)
@@ -198,7 +179,7 @@ func (s *gameScreen) Update() {
 }
 
 func (s *gameScreen) Draw(screen *ebiten.Image) {
-	screen.Fill(defaultBackgroundColor)
+	screen.Fill(ui.DefaultBackgroundColor)
 	if s.c.currentGame != nil {
 		s.c.currentGame.Draw(screen)
 	}
@@ -245,13 +226,13 @@ func (j *joinPartyScreen) statusText() *ui.Text {
 		text = "Fehler beim Laden der Parties"
 	}
 
-	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, windowHeight/2), text, defaultTextColors, rescources.RobotoNormalFont)
+	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, windowHeight/2), text, ui.DefaultTextColors, rescources.RobotoNormalFont)
 }
 
 func (j *joinPartyScreen) title() *ui.Text {
 	windowWidth, windowHeight := ebiten.WindowSize()
 
-	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, windowHeight/3), "Party beitreten", defaultTitleColors, rescources.RobotoTitleFont)
+	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, windowHeight/3), "Party beitreten", ui.DefaultTitleColors, rescources.RobotoTitleFont)
 }
 
 func (j *joinPartyScreen) partiesList() []*ui.Button {
@@ -264,7 +245,7 @@ func (j *joinPartyScreen) partiesList() []*ui.Button {
 		partyButton := ui.NewButton(ui.NewCenteredPosition(
 			windowWidth/2,
 			(windowHeight/3)*2+100*i,
-		), fmt.Sprintf("%s (%d Spieler)", party.Name, len(party.Players)), defaultButtonColors, func() {
+		), fmt.Sprintf("%s (%d Spieler)", party.Name, len(party.Players)), ui.DefaultButtonColors, func() {
 			joinParty, err := json.Marshal(protocol.JoinPartyPacket{
 				PacketName: protocol.JoinPartyPacketName,
 				Id:         partyCopy.Id,
@@ -304,7 +285,7 @@ func (j *joinPartyScreen) Update() {
 }
 
 func (j *joinPartyScreen) Draw(screen *ebiten.Image) {
-	screen.Fill(defaultBackgroundColor)
+	screen.Fill(ui.DefaultBackgroundColor)
 	for _, component := range j.content() {
 		component.Draw(screen)
 	}
@@ -351,7 +332,7 @@ func (c *createPartyScreen) partyNameText() *ui.Text {
 
 	pos := ui.NewCenteredPosition(width/2, height/3)
 
-	return ui.NewText(pos, "Name der Party: "+string(c.partyName), defaultTitleColors, rescources.RobotoTitleFont)
+	return ui.NewText(pos, "Name der Party: "+string(c.partyName), ui.DefaultTitleColors, rescources.RobotoTitleFont)
 }
 
 func (c *createPartyScreen) createButton() *ui.Button {
@@ -370,7 +351,7 @@ func (c *createPartyScreen) createButton() *ui.Button {
 		c.c.SendPacket(createParty)
 	}
 
-	return ui.NewButton(pos, "Party erstellen", defaultButtonColors, callback)
+	return ui.NewButton(pos, "Party erstellen", ui.DefaultButtonColors, callback)
 }
 
 func (c *createPartyScreen) Update() {
@@ -387,7 +368,7 @@ func (c *createPartyScreen) Update() {
 }
 
 func (c *createPartyScreen) Draw(screen *ebiten.Image) {
-	screen.Fill(defaultBackgroundColor)
+	screen.Fill(ui.DefaultBackgroundColor)
 	c.partyNameText().Draw(screen)
 	c.createButton().Draw(screen)
 }
@@ -409,7 +390,7 @@ func (p *partyScreen) title() *ui.Text {
 
 	pos := ui.NewCenteredPosition(width/2, height/3)
 
-	return ui.NewText(pos, "Party: "+p.c.partyName, defaultTitleColors, rescources.RobotoTitleFont)
+	return ui.NewText(pos, "Party: "+p.c.partyName, ui.DefaultTitleColors, rescources.RobotoTitleFont)
 }
 
 func (p *partyScreen) playerList() []*ui.Text {
@@ -421,7 +402,7 @@ func (p *partyScreen) playerList() []*ui.Text {
 		playerList = append(playerList, ui.NewText(ui.NewCenteredPosition(
 			windowWidth/2,
 			100+windowHeight/3+100*i,
-		), player.Name, defaultTextColors, rescources.RobotoNormalFont))
+		), player.Name, ui.DefaultTextColors, rescources.RobotoNormalFont))
 		i++
 	}
 
@@ -433,7 +414,7 @@ func (p *partyScreen) startGameButton() *ui.Button {
 
 	pos := ui.NewCenteredPosition(windowWidth/2, windowHeight-100)
 
-	return ui.NewButton(pos, "Spiel starten", defaultButtonColors, func() {
+	return ui.NewButton(pos, "Spiel starten", ui.DefaultButtonColors, func() {
 		p.c.currentScreen = newStartGameScreen(p.c)
 	})
 }
@@ -466,7 +447,7 @@ func (p *partyScreen) Update() {
 }
 
 func (p *partyScreen) Draw(screen *ebiten.Image) {
-	screen.Fill(defaultBackgroundColor)
+	screen.Fill(ui.DefaultBackgroundColor)
 	for _, component := range p.contents() {
 		component.Draw(screen)
 	}
@@ -489,7 +470,7 @@ func (s *startGameScreen) title() *ui.Text {
 
 	pos := ui.NewCenteredPosition(width/2, height/3)
 
-	return ui.NewText(pos, "Spiel starten", defaultTextColors, rescources.RobotoTitleFont)
+	return ui.NewText(pos, "Spiel starten", ui.DefaultTextColors, rescources.RobotoTitleFont)
 }
 
 func (s *startGameScreen) gameButtons() []*ui.Button {
@@ -512,7 +493,7 @@ func (s *startGameScreen) gameButtons() []*ui.Button {
 			s.c.SendPacket(startGame)
 		}
 
-		buttons = append(buttons, ui.NewButton(pos, gameType.DisplayName, defaultButtonColors, callback))
+		buttons = append(buttons, ui.NewButton(pos, gameType.DisplayName, ui.DefaultButtonColors, callback))
 	}
 
 	return buttons
@@ -540,7 +521,7 @@ func (s *startGameScreen) Update() {
 }
 
 func (s *startGameScreen) Draw(screen *ebiten.Image) {
-	screen.Fill(defaultBackgroundColor)
+	screen.Fill(ui.DefaultBackgroundColor)
 	for _, component := range s.content() {
 		component.Draw(screen)
 	}

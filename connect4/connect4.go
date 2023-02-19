@@ -1,8 +1,8 @@
 package connect4
 
-const Name = "connect4"
-
 const (
+	Name = "connect4"
+
 	BoardWidth  = 7
 	BoardHeight = 6
 )
