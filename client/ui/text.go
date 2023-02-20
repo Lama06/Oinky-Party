@@ -3,6 +3,7 @@ package ui
 import (
 	"image/color"
 
+	"github.com/Lama06/Oinky-Party/client/rescources"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
@@ -13,35 +14,67 @@ type TextColorPalette struct {
 	HoverColor color.Color
 }
 
+func (t TextColorPalette) getHoverColor() color.Color {
+	if t.HoverColor == nil {
+		return t.Color
+	}
+	return t.HoverColor
+}
+
+type TextConfig struct {
+	Pos    Position
+	Text   string
+	Colors *TextColorPalette
+	Font   font.Face
+}
+
 type Text struct {
-	pos   Position
-	text  string
-	color TextColorPalette
-	font  font.Face
+	Pos    Position
+	Text   string
+	Colors *TextColorPalette
+	Font   font.Face
 }
 
 var _ Component = (*Text)(nil)
 
-func NewText(pos Position, text string, color TextColorPalette, font font.Face) *Text {
+func NewText(config TextConfig) *Text {
 	return &Text{
-		pos:   pos,
-		text:  text,
-		color: color,
-		font:  font,
+		Pos:    config.Pos,
+		Text:   config.Text,
+		Colors: config.Colors,
+		Font:   config.Font,
 	}
+}
+
+func (t *Text) getColors() TextColorPalette {
+	if t.Colors == nil {
+		return DefaultTextColors
+	}
+	return *t.Colors
+}
+
+func (t *Text) getFont() font.Face {
+	if t.Font == nil {
+		return rescources.RobotoNormalFont
+	}
+	return t.Font
 }
 
 func (t *Text) Update() {}
 
 func (t *Text) Draw(screen *ebiten.Image) {
-	textBounds := text.BoundString(t.font, t.text).Size()
-	textWidth, textHeight := textBounds.X, textBounds.Y
-	topLeftPosition := t.pos.ToTopLeftPosition(textWidth, textHeight)
-
-	color := t.color.Color
-	if IsHovered(topLeftPosition, textWidth, textHeight) && t.color.HoverColor != nil {
-		color = t.color.HoverColor
+	if t.Pos == nil {
+		return
 	}
 
-	text.Draw(screen, t.text, t.font, topLeftPosition.x, topLeftPosition.y+textHeight, color)
+	textBounds := text.BoundString(t.getFont(), t.Text).Size()
+	textWidth, textHeight := textBounds.X, textBounds.Y
+	topLeftCornerX, topLeftCornerY := t.Pos.TopLeftCorner(textWidth, textHeight)
+
+	color := t.getColors().Color
+	if IsHovered(t.Pos, textWidth, textHeight) {
+		color = t.getColors().getHoverColor()
+	}
+
+	text.Draw(screen, t.Text, t.getFont(), topLeftCornerX, topLeftCornerY+textHeight, color)
 }

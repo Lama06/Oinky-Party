@@ -205,7 +205,7 @@ func (c *client) handlePacket(packet []byte) error {
 		c.currentScreen = newPartyScreen(c)
 	default:
 		if packetHandler, ok := c.currentScreen.(packetHandlerScreen); ok {
-			err := packetHandler.HandlePacket(packet)
+			err := packetHandler.handlePacket(packet)
 			if err != nil {
 				return fmt.Errorf("screen failed to handle error: %w", err)
 			}
@@ -267,7 +267,7 @@ func (c *client) Update() error {
 	}
 
 	if c.currentScreen != nil {
-		c.currentScreen.Update()
+		c.currentScreen.update()
 	}
 
 	return nil
@@ -275,7 +275,7 @@ func (c *client) Update() error {
 
 func (c *client) Draw(screen *ebiten.Image) {
 	if c.currentScreen != nil {
-		c.currentScreen.Draw(screen)
+		c.currentScreen.draw(screen)
 	}
 }
 

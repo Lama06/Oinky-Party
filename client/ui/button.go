@@ -9,7 +9,10 @@ import (
 )
 
 const (
-	buttonPadding = 20
+	buttonPadding               = 20
+	buttonScaleNotHovered       = 1
+	buttonScaleHovered          = 1.1
+	buttonScaleMaxChangePerTick = 0.01
 )
 
 type ButtonColorPalette struct {
@@ -19,22 +22,60 @@ type ButtonColorPalette struct {
 	TextHoverColor       color.Color
 }
 
+func (b ButtonColorPalette) getBackgroundHoverColor() color.Color {
+	if b.BackgroundHoverColor == nil {
+		return b.BackgroundColor
+	}
+
+	return b.BackgroundHoverColor
+}
+
+func (b ButtonColorPalette) getTextHoverColor() color.Color {
+	if b.TextHoverColor == nil {
+		return b.TextColor
+	}
+
+	return b.TextHoverColor
+}
+
+type ButtonConfig struct {
+	Pos      Position
+	Text     string
+	Colors   *ButtonColorPalette
+	Callback func()
+}
+
 type Button struct {
-	pos      Position
-	text     string
-	color    ButtonColorPalette
-	callback func()
+	Pos         Position
+	Callback    func()
+	text        string
+	colors      *ButtonColorPalette
+	scale       float64
+	imgStandard *ebiten.Image
+	imgHovered  *ebiten.Image
 }
 
 var _ Component = (*Button)(nil)
 
-func NewButton(pos Position, text string, color ButtonColorPalette, callback func()) *Button {
-	return &Button{
-		pos:      pos,
-		text:     text,
-		color:    color,
-		callback: callback,
+func NewButton(config ButtonConfig) *Button {
+	button := Button{
+		Pos:      config.Pos,
+		Callback: config.Callback,
+		text:     config.Text,
+		colors:   config.Colors,
+		scale:    buttonScaleNotHovered,
 	}
+
+	button.updateImages()
+
+	return &button
+}
+
+func (b *Button) getColors() ButtonColorPalette {
+	if b.colors == nil {
+		return DefaultButtonColors
+	}
+	return *b.colors
 }
 
 func (b *Button) getDimensions() (width int, height int) {
@@ -43,34 +84,92 @@ func (b *Button) getDimensions() (width int, height int) {
 	return textWidth + buttonPadding*2, textHeight + buttonPadding*2
 }
 
-func (b *Button) Update() {
+func (b *Button) createImage(bgColor, textColor color.Color) *ebiten.Image {
 	buttonWidth, buttonHeight := b.getDimensions()
-	if IsClicked(b.pos, buttonWidth, buttonHeight, ebiten.MouseButtonLeft) {
-		b.callback()
-	}
-}
-
-func (b *Button) Draw(screen *ebiten.Image) {
-	buttonWidth, buttonHeight := b.getDimensions()
-	topLeftPosition := b.pos.ToTopLeftPosition(buttonWidth, buttonHeight)
-
-	bgColor := b.color.BackgroundColor
-	textColor := b.color.TextColor
-	if IsHovered(topLeftPosition, buttonWidth, buttonHeight) {
-		if b.color.BackgroundHoverColor != nil {
-			bgColor = b.color.BackgroundHoverColor
-		}
-		if b.color.TextHoverColor != nil {
-			textColor = b.color.TextHoverColor
-		}
-	}
-
 	img := ebiten.NewImage(buttonWidth, buttonHeight)
 	img.Fill(bgColor)
 	textX := buttonPadding
 	textY := buttonHeight - buttonPadding
 	text.Draw(img, b.text, rescources.RobotoNormalFont, textX, textY, textColor)
+	return img
+}
+
+func (b *Button) createImageStandard() *ebiten.Image {
+	return b.createImage(b.getColors().BackgroundColor, b.getColors().TextColor)
+}
+
+func (b *Button) createImageHovered() *ebiten.Image {
+	return b.createImage(b.getColors().getBackgroundHoverColor(), b.getColors().getTextHoverColor())
+}
+
+func (b *Button) updateImages() {
+	b.imgStandard = b.createImageStandard()
+	b.imgHovered = b.createImageHovered()
+}
+
+func (b *Button) Text() string {
+	return b.text
+}
+
+func (b *Button) SetText(text string) {
+	b.text = text
+	b.updateImages()
+}
+
+func (b *Button) Colors() *ButtonColorPalette {
+	return b.colors
+}
+
+func (b *Button) SetColors(colors *ButtonColorPalette) {
+	b.colors = colors
+	b.updateImages()
+}
+
+func (b *Button) Update() {
+	if b.Pos == nil {
+		return
+	}
+
+	buttonWidth, buttonHeight := b.getDimensions()
+
+	if IsClicked(b.Pos, buttonWidth, buttonHeight, ebiten.MouseButtonLeft) && b.Callback != nil {
+		b.Callback()
+	}
+
+	if IsHovered(b.Pos, buttonWidth, buttonHeight) {
+		if b.scale < buttonScaleHovered {
+			diff := buttonScaleHovered - b.scale
+			if diff > buttonScaleMaxChangePerTick {
+				diff = buttonScaleMaxChangePerTick
+			}
+			b.scale += diff
+		}
+	} else {
+		if b.scale > buttonScaleNotHovered {
+			diff := b.scale - buttonScaleNotHovered
+			if diff > buttonScaleMaxChangePerTick {
+				diff = buttonScaleMaxChangePerTick
+			}
+			b.scale -= diff
+		}
+	}
+}
+
+func (b *Button) Draw(screen *ebiten.Image) {
+	if b.Pos == nil {
+		return
+	}
+
+	buttonWidth, buttonHeight := b.getDimensions()
+
+	img := b.imgStandard
+	if IsHovered(b.Pos, buttonWidth, buttonHeight) {
+		img = b.imgHovered
+	}
+
+	topLeftCornerX, topLeftCornerY := b.Pos.TopLeftCorner(buttonWidth, buttonHeight)
 	var drawOptions ebiten.DrawImageOptions
-	drawOptions.GeoM.Translate(float64(topLeftPosition.x), float64(topLeftPosition.y))
+	drawOptions.GeoM.Scale(b.scale, b.scale)
+	drawOptions.GeoM.Translate(float64(topLeftCornerX), float64(topLeftCornerY))
 	screen.DrawImage(img, &drawOptions)
 }

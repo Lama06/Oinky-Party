@@ -263,9 +263,14 @@ func (i *impl) HandlePacket(packet []byte) error {
 func (i *impl) obstacleCounter() *ui.Text {
 	windowWidth, _ := ebiten.WindowSize()
 
-	return ui.NewText(ui.NewCenteredPosition(windowWidth/2, 50), strconv.Itoa(int(i.obstacleCount)), ui.TextColorPalette{
-		Color: colornames.Black,
-	}, rescources.RobotoTitleFont)
+	return ui.NewText(ui.TextConfig{
+		Pos:  ui.CenteredPosition{X: windowWidth / 2, Y: 50},
+		Text: strconv.Itoa(int(i.obstacleCount)),
+		Colors: &ui.TextColorPalette{
+			Color: colornames.Black,
+		},
+		Font: rescources.RobotoTitleFont,
+	})
 }
 
 func (i *impl) Draw(screen *ebiten.Image) {

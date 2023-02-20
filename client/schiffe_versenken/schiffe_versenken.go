@@ -144,28 +144,32 @@ func (i *impl) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func (i *impl) createSetupShipsContinueBtn() *ui.Button {
-	return ui.NewButton(ui.NewCenteredPosition(boardWidth+100, boardHeight/2), "Weiter", ui.DefaultButtonColors, func() {
-		if i.hasSetupShips {
-			return
-		}
+	return ui.NewButton(ui.ButtonConfig{
+		Pos:  ui.CenteredPosition{X: boardWidth + 100, Y: boardHeight / 2},
+		Text: "Weiter",
+		Callback: func() {
+			if i.hasSetupShips {
+				return
+			}
 
-		ships := i.setupBoard.parseShips()
+			ships := i.setupBoard.parseShips()
 
-		if !ships.Valid() {
-			return
-		}
+			if !ships.Valid() {
+				return
+			}
 
-		i.hasSetupShips = true
-		i.personalBoard = newPersonalBoard(i, ships)
+			i.hasSetupShips = true
+			i.personalBoard = newPersonalBoard(i, ships)
 
-		setupShips, err := json.Marshal(shared.SetupShipsPacket{
-			PacketName: shared.SetupShipsPacketName,
-			Ships:      ships,
-		})
-		if err != nil {
-			panic(err)
-		}
-		i.client.SendPacket(setupShips)
+			setupShips, err := json.Marshal(shared.SetupShipsPacket{
+				PacketName: shared.SetupShipsPacketName,
+				Ships:      ships,
+			})
+			if err != nil {
+				panic(err)
+			}
+			i.client.SendPacket(setupShips)
+		},
 	})
 }
 
