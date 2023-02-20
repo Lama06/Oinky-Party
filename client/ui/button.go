@@ -11,8 +11,8 @@ import (
 const (
 	buttonPadding               = 20
 	buttonScaleNotHovered       = 1
-	buttonScaleHovered          = 1.1
-	buttonScaleMaxChangePerTick = 0.01
+	buttonScaleHovered          = 1.2
+	buttonScaleMaxChangePerTick = 0.03
 )
 
 type ButtonColorPalette struct {
@@ -73,7 +73,7 @@ func NewButton(config ButtonConfig) *Button {
 
 func (b *Button) getColors() ButtonColorPalette {
 	if b.colors == nil {
-		return DefaultButtonColors
+		return ButtonColors
 	}
 	return *b.colors
 }
@@ -171,5 +171,6 @@ func (b *Button) Draw(screen *ebiten.Image) {
 	var drawOptions ebiten.DrawImageOptions
 	drawOptions.GeoM.Scale(b.scale, b.scale)
 	drawOptions.GeoM.Translate(float64(topLeftCornerX), float64(topLeftCornerY))
+	drawOptions.GeoM.Translate(-(b.scale-buttonScaleNotHovered)*0.5*float64(buttonWidth), -(b.scale-buttonScaleNotHovered)*0.5*float64(buttonHeight))
 	screen.DrawImage(img, &drawOptions)
 }

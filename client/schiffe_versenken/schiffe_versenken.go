@@ -24,13 +24,14 @@ const (
 )
 
 type impl struct {
-	client                game.Client
-	hasSetupShips         bool
-	setupShipsContinueBtn *ui.Button
-	setupBoard            *setupBoard
-	gameStarted           bool
-	personalBoard         *personalBoard
-	enemyBoard            *enemyBoard
+	client                    game.Client
+	setupShipsContinueBtn     *ui.Button
+	setupBoard                *setupBoard
+	hasSetupShips             bool
+	waitingForGameToStartText *ui.Text
+	gameStarted               bool
+	personalBoard             *personalBoard
+	enemyBoard                *enemyBoard
 }
 
 var _ game.Game = (*impl)(nil)
@@ -44,8 +45,9 @@ func create(client game.Client) game.Game {
 var _ game.Creator = create
 
 func (i *impl) HandleGameStarted() {
-	i.setupShipsContinueBtn = i.createSetupShipsContinueBtn()
+	i.setupShipsContinueBtn = i.createSetupSetupShipsContinueBtn()
 	i.setupBoard = newEmptySetupBoard(i)
+	i.waitingForGameToStartText = i.createWaitingForGameToStartText()
 	i.enemyBoard = newEmptyEnemyBoard(i)
 }
 
@@ -111,10 +113,9 @@ func (i *impl) Draw(screen *ebiten.Image) {
 
 	if !i.hasSetupShips {
 		i.setupBoard.draw(screen)
-
 		i.setupShipsContinueBtn.Draw(screen)
 	} else if !i.gameStarted {
-		// TODO
+		i.waitingForGameToStartText.Draw(screen)
 	} else {
 		i.personalBoard.draw(screen)
 		i.enemyBoard.draw(screen)
@@ -124,9 +125,15 @@ func (i *impl) Draw(screen *ebiten.Image) {
 func (i *impl) Update() {
 	if !i.hasSetupShips {
 		i.setupBoard.update()
+		switch i.setupBoard.parseShips().Valid() {
+		case false:
+			i.setupShipsContinueBtn.SetColors(&ui.DisabledButtonColors)
+		case true:
+			i.setupShipsContinueBtn.SetColors(&ui.ButtonColors)
+		}
 		i.setupShipsContinueBtn.Update()
 	} else if !i.gameStarted {
-		// TODO
+		i.waitingForGameToStartText.Update()
 	} else {
 		i.enemyBoard.update()
 	}
@@ -136,14 +143,13 @@ func (i *impl) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	if !i.hasSetupShips {
 		return boardWidth + 200, boardHeight
 	} else if !i.gameStarted {
-		// TODO
-		return 100, 100
+		return outsideWidth, outsideHeight
 	} else {
 		return boardWidth*2 + distanceBetweenBoards, boardHeight
 	}
 }
 
-func (i *impl) createSetupShipsContinueBtn() *ui.Button {
+func (i *impl) createSetupSetupShipsContinueBtn() *ui.Button {
 	return ui.NewButton(ui.ButtonConfig{
 		Pos:  ui.CenteredPosition{X: boardWidth + 100, Y: boardHeight / 2},
 		Text: "Weiter",
@@ -170,6 +176,15 @@ func (i *impl) createSetupShipsContinueBtn() *ui.Button {
 			}
 			i.client.SendPacket(setupShips)
 		},
+	})
+}
+
+func (i *impl) createWaitingForGameToStartText() *ui.Text {
+	return ui.NewText(ui.TextConfig{
+		Pos: ui.DynamicPosition(func(width, height int) ui.Position {
+			return ui.CenteredPosition{X: width / 2, Y: height / 2}
+		}),
+		Text: "Warten auf Gegner...",
 	})
 }
 

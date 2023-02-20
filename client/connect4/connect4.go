@@ -72,6 +72,8 @@ func (i *impl) HandlePacket(data []byte) error {
 }
 
 func (i *impl) Draw(screen *ebiten.Image) {
+	screen.Fill(colornames.White)
+
 	for x := 0; x < shared.BoardWidth; x++ {
 		for y := 0; y < shared.BoardHeight; y++ {
 			var clr color.Color

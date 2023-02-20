@@ -8,7 +8,6 @@ import (
 	"image"
 	_ "image/png"
 	"math"
-	"strconv"
 	"time"
 
 	"github.com/Lama06/Oinky-Party/client/game"
@@ -179,7 +178,7 @@ type impl struct {
 	lastTickTime     int64 // Die Zeit in Millisekunden, bei der das letzte Mal die Daten vom Server aktualisiert wurden
 	players          map[int32]*player
 	obstacles        []*obstacle
-	obstacleCount    int32
+	obstacleCounter  *ui.Text
 	debugModeEnabled bool
 }
 
@@ -189,6 +188,16 @@ func create(client game.Client) game.Game {
 	return &impl{
 		client:       client,
 		lastTickTime: time.Now().UnixMilli(),
+		obstacleCounter: ui.NewText(ui.TextConfig{
+			Pos: ui.DynamicPosition(func(width, height int) ui.Position {
+				return ui.CenteredPosition{X: width / 2, Y: 50}
+			}),
+			Text: "0",
+			Colors: &ui.TextColorPalette{
+				Color: colornames.Black,
+			},
+			Font: rescources.RobotoTitleFont,
+		}),
 	}
 }
 
@@ -250,7 +259,7 @@ func (i *impl) HandlePacket(packet []byte) error {
 				clientPosX:      obstacleData.PosX,
 			}
 		}
-		i.obstacleCount = update.ObstacleCount
+		i.obstacleCounter.Text = fmt.Sprintf("%d", update.ObstacleCount)
 
 		i.lastTickTime = time.Now().UnixMilli()
 
@@ -258,19 +267,6 @@ func (i *impl) HandlePacket(packet []byte) error {
 	default:
 		return fmt.Errorf("unknown packet name: %s", packetName)
 	}
-}
-
-func (i *impl) obstacleCounter() *ui.Text {
-	windowWidth, _ := ebiten.WindowSize()
-
-	return ui.NewText(ui.TextConfig{
-		Pos:  ui.CenteredPosition{X: windowWidth / 2, Y: 50},
-		Text: strconv.Itoa(int(i.obstacleCount)),
-		Colors: &ui.TextColorPalette{
-			Color: colornames.Black,
-		},
-		Font: rescources.RobotoTitleFont,
-	})
 }
 
 func (i *impl) Draw(screen *ebiten.Image) {
@@ -292,7 +288,7 @@ func (i *impl) Draw(screen *ebiten.Image) {
 		obstacle.draw(screen)
 	}
 
-	i.obstacleCounter().Draw(screen)
+	i.obstacleCounter.Draw(screen)
 }
 
 func (i *impl) Update() {
@@ -320,7 +316,7 @@ func (i *impl) Update() {
 		player.clientTick(delta)
 	}
 
-	i.obstacleCounter().Update()
+	i.obstacleCounter.Update()
 }
 
 func (i *impl) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {

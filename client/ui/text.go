@@ -48,7 +48,7 @@ func NewText(config TextConfig) *Text {
 
 func (t *Text) getColors() TextColorPalette {
 	if t.Colors == nil {
-		return DefaultTextColors
+		return TextColors
 	}
 	return *t.Colors
 }
@@ -60,7 +60,9 @@ func (t *Text) getFont() font.Face {
 	return t.Font
 }
 
-func (t *Text) Update() {}
+func (t *Text) Update() {
+
+}
 
 func (t *Text) Draw(screen *ebiten.Image) {
 	if t.Pos == nil {
